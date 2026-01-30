@@ -1,6 +1,6 @@
 // src/App.jsx
 import React, { useState, useEffect } from 'react';
-import { Calendar, MapPin, Camera, Heart, Book, Users, Mountain, MessageCircle, Navigation, Clock, Sun, Cloud, CloudRain, Bell, X, Upload, Send } from 'lucide-react';
+import { Calendar, MapPin, Camera, Heart, Book, Users, Mountain, MessageCircle, Navigation, Clock, Sun, Cloud, CloudRain, Bell, X, Upload, Send, Map, Thermometer, Wind, Droplets, ChevronRight } from 'lucide-react';
 
 export default function GreenwichSDARetreatApp() {
   const [activeTab, setActiveTab] = useState('schedule');
@@ -8,9 +8,13 @@ export default function GreenwichSDARetreatApp() {
   const [showUserModal, setShowUserModal] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
   const [prayerText, setPrayerText] = useState('');
+  const [testimonialText, setTestimonialText] = useState('');
   const [photos, setPhotos] = useState([]);
   const [prayerRequests, setPrayerRequests] = useState([]);
+  const [testimonials, setTestimonials] = useState([]);
   const [notifications, setNotifications] = useState([]);
+  const [currentDay, setCurrentDay] = useState('saturday'); // Track current day
+  const [selectedLocation, setSelectedLocation] = useState('base');
 
   // Current user
   const [currentUser, setCurrentUser] = useState(() => {
@@ -34,6 +38,10 @@ export default function GreenwichSDARetreatApp() {
   const [weather] = useState({
     temperature: 18,
     condition: 'Partly Cloudy',
+    feelsLike: 16,
+    humidity: 65,
+    windSpeed: 12,
+    precipitation: 20,
     forecast: [
       { day: 'Today', high: 18, low: 12, icon: '⛅' },
       { day: 'Sat', high: 16, low: 11, icon: '🌦️' },
@@ -41,28 +49,120 @@ export default function GreenwichSDARetreatApp() {
     ]
   });
 
-  // Daily schedule
-  const schedule = {
-    saturday: [
-      { time: '07:00', activity: 'Morning Devotion', location: 'Base', emoji: '📖' },
-      { time: '08:00', activity: 'Breakfast', location: 'Base', emoji: '🍳' },
-      { time: '09:00', activity: 'Aira Force & Gowbarrow Fell Hike', location: 'Aira Force', emoji: '🏔️' },
-      { time: '14:00', activity: 'Return & Rest', location: 'Base', emoji: '😌' },
-      { time: '16:00', activity: 'Optional: Ullswater Steamer', location: 'Ullswater', emoji: '⛴️' },
-      { time: '18:00', activity: 'Dinner', location: 'Base', emoji: '🍽️' },
-      { time: '19:30', activity: 'Evening Worship & Discussion', location: 'Base', emoji: '🙏' },
-      { time: '21:00', activity: 'Free Time / Fellowship', location: 'Base', emoji: '☕' }
-    ]
-  };
-
-  // Devotional content
-  const devotionals = {
-    saturday: {
-      title: 'Biblical Manhood: Living Under Christ\'s Lordship',
-      scripture: '1 Corinthians 16:13-14',
-      quote: '"Be on your guard; stand firm in the faith; be courageous; be strong. Do everything in love."',
+  // Location data for map
+  const locations = {
+    base: { 
+      name: 'Bury Jubilee Centre', 
+      lat: 54.5262, 
+      lng: -2.9620,
+      description: 'Our retreat base camp',
+      distance: '0 km',
+      icon: '🏠',
+      color: 'bg-emerald-500'
+    },
+    airaForce: { 
+      name: 'Aira Force Waterfall', 
+      lat: 54.5733, 
+      lng: -2.9067,
+      description: '65-foot waterfall walk',
+      distance: '4.8 km',
+      icon: '💧',
+      color: 'bg-blue-500'
+    },
+    helvellyn: { 
+      name: 'Helvellyn Summit', 
+      lat: 54.5275, 
+      lng: -3.0164,
+      description: 'England\'s 3rd highest peak',
+      distance: '6.5 km',
+      icon: '⛰️',
+      color: 'bg-amber-500'
+    },
+    ullswater: { 
+      name: 'Ullswater Lake', 
+      lat: 54.5500, 
+      lng: -2.9300,
+      description: 'Boat cruises & lakeside walks',
+      distance: '3.2 km',
+      icon: '🛥️',
+      color: 'bg-indigo-500'
     }
   };
+
+  // Schedule data for each day
+  const scheduleData = {
+    friday: {
+      day: 'Friday',
+      date: '21 Aug',
+      schedule: [
+        { time: '06:00', activity: 'Depart London', location: 'base', emoji: '🚌' },
+        { time: '14:00', activity: 'Arrival & Check-in', location: 'base', emoji: '🏠' },
+        { time: '15:00', activity: 'Orientation Walk', location: 'base', emoji: '🥾' },
+        { time: '17:30', activity: 'Dinner', location: 'base', emoji: '🍽️' },
+        { time: '19:00', activity: 'Welcome Worship', location: 'base', emoji: '🙏' },
+      ],
+      devotional: {
+        title: 'Taking Charge: You Will Part the Waters',
+        scripture: 'Exodus 14:13-16',
+        quote: '"Do not be afraid. Stand firm and you will see the deliverance the Lord will bring you today."',
+      }
+    },
+    saturday: {
+      day: 'Saturday',
+      date: '22 Aug',
+      schedule: [
+        { time: '07:00', activity: 'Morning Devotion', location: 'base', emoji: '📖' },
+        { time: '08:00', activity: 'Breakfast', location: 'base', emoji: '🍳' },
+        { time: '09:00', activity: 'Aira Force & Gowbarrow Fell Hike', location: 'airaForce', emoji: '🏔️' },
+        { time: '14:00', activity: 'Return & Rest', location: 'base', emoji: '😌' },
+        { time: '16:00', activity: 'Optional: Ullswater Steamer', location: 'ullswater', emoji: '⛴️' },
+        { time: '18:00', activity: 'Dinner', location: 'base', emoji: '🍽️' },
+        { time: '19:30', activity: 'Evening Worship & Discussion', location: 'base', emoji: '🙏' },
+        { time: '21:00', activity: 'Free Time / Fellowship', location: 'base', emoji: '☕' }
+      ],
+      devotional: {
+        title: 'Biblical Manhood: Living Under Christ\'s Lordship',
+        scripture: '1 Corinthians 16:13-14',
+        quote: '"Be on your guard; stand firm in the faith; be courageous; be strong. Do everything in love."',
+      }
+    },
+    sunday: {
+      day: 'Sunday',
+      date: '23 Aug',
+      schedule: [
+        { time: '06:30', activity: 'Morning Devotion & Prayer', location: 'base', emoji: '📖' },
+        { time: '07:15', activity: 'Early Breakfast', location: 'base', emoji: '🍳' },
+        { time: '08:00', activity: 'HELVELLYN SUMMIT HIKE', location: 'helvellyn', emoji: '⛰️' },
+        { time: '15:00', activity: 'Return & Rest', location: 'base', emoji: '😌' },
+        { time: '18:00', activity: 'Dinner', location: 'base', emoji: '🍽️' },
+        { time: '19:30', activity: 'Evening Worship & Communion', location: 'base', emoji: '✝️' },
+      ],
+      devotional: {
+        title: 'Fear Not, Stand Firm',
+        scripture: 'Joshua 1:9',
+        quote: '"Have I not commanded you? Be strong and courageous. Do not be afraid; do not be discouraged."',
+      }
+    },
+    monday: {
+      day: 'Monday',
+      date: '24 Aug',
+      schedule: [
+        { time: '07:00', activity: 'Final Morning Devotion', location: 'base', emoji: '📖' },
+        { time: '08:00', activity: 'Breakfast', location: 'base', emoji: '🍳' },
+        { time: '09:00', activity: 'Lakeside Walk & Closing Worship', location: 'ullswater', emoji: '🚶' },
+        { time: '10:30', activity: 'Pack Up & Check Out', location: 'base', emoji: '🎒' },
+        { time: '12:00', activity: 'Depart for London', location: 'base', emoji: '🚌' }
+      ],
+      devotional: {
+        title: 'Going Forward: Living as Men of Faith',
+        scripture: 'Philippians 3:13-14',
+        quote: '"Forgetting what is behind and straining towards what is ahead, I press on towards the goal."',
+      }
+    }
+  };
+
+  // Get current schedule based on selected day
+  const currentSchedule = scheduleData[currentDay];
 
   // Effects
   useEffect(() => {
@@ -72,6 +172,9 @@ export default function GreenwichSDARetreatApp() {
     
     const savedPrayers = localStorage.getItem('retreatCommunityPrayers');
     if (savedPrayers) setPrayerRequests(JSON.parse(savedPrayers));
+
+    const savedTestimonials = localStorage.getItem('retreatCommunityTestimonials');
+    if (savedTestimonials) setTestimonials(JSON.parse(savedTestimonials));
   }, [currentUser]);
 
   useEffect(() => {
@@ -81,6 +184,10 @@ export default function GreenwichSDARetreatApp() {
   useEffect(() => {
     localStorage.setItem('retreatCommunityPrayers', JSON.stringify(prayerRequests));
   }, [prayerRequests]);
+
+  useEffect(() => {
+    localStorage.setItem('retreatCommunityTestimonials', JSON.stringify(testimonials));
+  }, [testimonials]);
 
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 60000);
@@ -108,6 +215,7 @@ export default function GreenwichSDARetreatApp() {
           likes: 0
         };
         setPhotos(prev => [newPhoto, ...prev]);
+        addNotification('New photo uploaded!');
       };
       reader.readAsDataURL(file);
     }
@@ -128,6 +236,25 @@ export default function GreenwichSDARetreatApp() {
     
     setPrayerRequests(prev => [newRequest, ...prev]);
     setPrayerText('');
+    addNotification('Prayer request shared');
+  };
+
+  const addTestimonial = () => {
+    if (!testimonialText.trim()) return;
+    
+    const newTestimonial = {
+      id: Date.now(),
+      text: testimonialText,
+      userId: currentUser.id,
+      userName: currentUser.name,
+      userAvatar: currentUser.avatar,
+      timestamp: new Date().toISOString(),
+      likes: 0
+    };
+    
+    setTestimonials(prev => [newTestimonial, ...prev]);
+    setTestimonialText('');
+    addNotification('Testimony shared');
   };
 
   const addNotification = (message) => {
@@ -144,10 +271,34 @@ export default function GreenwichSDARetreatApp() {
     setNotifications(prev => prev.map(n => ({ ...n, read: true })));
   };
 
-  const currentSchedule = { day: 'Saturday', schedule: schedule.saturday, devotional: devotionals.saturday };
+  const likeItem = (type, id) => {
+    if (type === 'photo') {
+      setPhotos(prev => prev.map(p => p.id === id ? { ...p, likes: p.likes + 1 } : p));
+    } else if (type === 'testimonial') {
+      setTestimonials(prev => prev.map(t => t.id === id ? { ...t, likes: t.likes + 1 } : t));
+    } else if (type === 'prayer') {
+      setPrayerRequests(prev => prev.map(p => p.id === id ? { ...p, prayers: p.prayers + 1 } : p));
+    }
+    addNotification('You liked a post');
+  };
+
   const latestPhoto = photos[0];
   const latestPrayer = prayerRequests[0];
+  const latestTestimonial = testimonials[0];
   const unreadNotifications = notifications.filter(n => !n.read).length;
+
+  // Calculate distance between locations (simplified)
+  const calculateDistance = (from, to) => {
+    const distances = {
+      'base-airaForce': '4.8 km',
+      'base-helvellyn': '6.5 km',
+      'base-ullswater': '3.2 km',
+      'airaForce-helvellyn': '8.2 km',
+      'airaForce-ullswater': '5.1 km',
+      'helvellyn-ullswater': '7.3 km'
+    };
+    return distances[`${from}-${to}`] || '-- km';
+  };
 
   // Render different content based on active tab
   const renderTabContent = () => {
@@ -159,7 +310,7 @@ export default function GreenwichSDARetreatApp() {
               <div className="flex items-center justify-between mb-2">
                 <div>
                   <h2 className="text-2xl font-bold">{currentSchedule.day}'s Schedule</h2>
-                  <p className="text-slate-400">21-24 August 2026</p>
+                  <p className="text-slate-400">21-24 August 2026 • {currentSchedule.date}</p>
                 </div>
                 <div className="flex items-center gap-2">
                   <Users className="w-4 h-4" />
@@ -184,13 +335,18 @@ export default function GreenwichSDARetreatApp() {
                         <span className="text-lg font-bold text-emerald-400">
                           {item.time}
                         </span>
+                        {locations[item.location] && (
+                          <span className="text-xs text-emerald-400 bg-emerald-400/10 px-2 py-1 rounded-full">
+                            {locations[item.location].distance}
+                          </span>
+                        )}
                       </div>
                       
                       <h3 className="text-lg font-semibold mb-2">{item.activity}</h3>
                       
                       <div className="flex items-center gap-2 text-slate-400 text-sm">
                         <MapPin className="w-4 h-4" />
-                        <span>{item.location}</span>
+                        <span>{locations[item.location]?.name || item.location}</span>
                       </div>
                     </div>
                   </div>
@@ -198,25 +354,25 @@ export default function GreenwichSDARetreatApp() {
               ))}
             </div>
 
+            {/* WORKING Day Selector */}
             <div className="mt-8 bg-slate-800/50 rounded-2xl p-5">
               <h3 className="text-lg font-semibold mb-4">View Other Days</h3>
-              <div className="grid grid-cols-2 gap-3">
-                {['Friday', 'Saturday', 'Sunday', 'Monday'].map((day) => (
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                {Object.entries(scheduleData).map(([key, day]) => (
                   <button
-                    key={day}
-                    onClick={() => addNotification(`Switched to ${day}'s schedule`)}
+                    key={key}
+                    onClick={() => {
+                      setCurrentDay(key);
+                      addNotification(`Switched to ${day.day}'s schedule`);
+                    }}
                     className={`rounded-xl p-4 text-center transition-all ${
-                      day === 'Saturday'
-                        ? 'bg-emerald-600'
+                      currentDay === key
+                        ? 'bg-gradient-to-r from-emerald-600 to-teal-600 shadow-lg'
                         : 'bg-slate-700/50 hover:bg-slate-700'
                     }`}
                   >
-                    <div className="font-bold">{day}</div>
-                    <div className="text-sm opacity-80">
-                      {day === 'Friday' ? '21 Aug' : 
-                       day === 'Saturday' ? '22 Aug' :
-                       day === 'Sunday' ? '23 Aug' : '24 Aug'}
-                    </div>
+                    <div className="font-bold">{day.day}</div>
+                    <div className="text-sm opacity-80">{day.date}</div>
                   </button>
                 ))}
               </div>
@@ -228,31 +384,105 @@ export default function GreenwichSDARetreatApp() {
         return (
           <div className="px-4 py-6">
             <div className="bg-gradient-to-r from-blue-600 to-teal-600 rounded-2xl p-6 mb-6">
-              <h2 className="text-2xl font-bold">Location</h2>
-              <p className="text-blue-100">Bury Jubilee Outdoor Pursuits Centre</p>
+              <h2 className="text-2xl font-bold">Interactive Map</h2>
+              <p className="text-blue-100">Tap locations for details</p>
             </div>
-            <div className="bg-slate-800/50 rounded-2xl p-6 text-center">
-              <Navigation className="w-16 h-16 mx-auto mb-4 text-emerald-400" />
-              <h3 className="text-xl font-bold mb-2">Lake District Map</h3>
-              <p className="text-slate-400">Interactive map coming soon</p>
-            </div>
-          </div>
-        );
-
-      case 'devotional':
-        return (
-          <div className="px-4 py-6">
-            <div className="bg-gradient-to-r from-purple-600 to-indigo-600 rounded-2xl p-6 mb-6">
-              <h2 className="text-2xl font-bold">Daily Devotional</h2>
-              <p className="text-purple-100">{currentSchedule.day}'s Word</p>
-            </div>
-            <div className="bg-slate-800/50 rounded-2xl p-6">
-              <Book className="w-8 h-8 text-purple-400 mb-4" />
-              <h3 className="text-xl font-bold mb-2">{currentSchedule.devotional.title}</h3>
-              <p className="text-purple-300 mb-4">{currentSchedule.devotional.scripture}</p>
-              <div className="bg-purple-900/30 rounded-xl p-4 mb-4">
-                <p className="italic">{currentSchedule.devotional.quote}</p>
+            
+            {/* INTERACTIVE MAP */}
+            <div className="bg-slate-800/50 rounded-2xl p-6 mb-6">
+              <div className="relative h-64 bg-gradient-to-br from-slate-900 to-blue-900/50 rounded-xl mb-6 overflow-hidden">
+                {/* Map Background */}
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <Map className="w-32 h-32 text-slate-700/50" />
+                </div>
+                
+                {/* Location Dots - INTERACTIVE */}
+                <button 
+                  onClick={() => setSelectedLocation('base')}
+                  className={`absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-12 h-12 rounded-full border-4 border-white shadow-lg flex items-center justify-center transition-transform ${selectedLocation === 'base' ? 'scale-110' : ''} ${locations.base.color}`}
+                >
+                  <span className="text-xl">{locations.base.icon}</span>
+                </button>
+                
+                <button 
+                  onClick={() => setSelectedLocation('airaForce')}
+                  className={`absolute top-1/4 left-3/4 transform -translate-x-1/2 -translate-y-1/2 w-10 h-10 rounded-full border-3 border-white shadow-lg flex items-center justify-center transition-transform ${selectedLocation === 'airaForce' ? 'scale-110' : ''} ${locations.airaForce.color}`}
+                >
+                  <span className="text-lg">{locations.airaForce.icon}</span>
+                </button>
+                
+                <button 
+                  onClick={() => setSelectedLocation('helvellyn')}
+                  className={`absolute top-1/3 left-1/4 transform -translate-x-1/2 -translate-y-1/2 w-10 h-10 rounded-full border-3 border-white shadow-lg flex items-center justify-center transition-transform ${selectedLocation === 'helvellyn' ? 'scale-110' : ''} ${locations.helvellyn.color}`}
+                >
+                  <span className="text-lg">{locations.helvellyn.icon}</span>
+                </button>
+                
+                <button 
+                  onClick={() => setSelectedLocation('ullswater')}
+                  className={`absolute bottom-1/4 left-2/3 transform -translate-x-1/2 -translate-y-1/2 w-10 h-10 rounded-full border-3 border-white shadow-lg flex items-center justify-center transition-transform ${selectedLocation === 'ullswater' ? 'scale-110' : ''} ${locations.ullswater.color}`}
+                >
+                  <span className="text-lg">{locations.ullswater.icon}</span>
+                </button>
+                
+                {/* Connection Lines */}
+                <svg className="absolute inset-0 w-full h-full">
+                  <line x1="50%" y1="50%" x2="75%" y2="25%" stroke="#3b82f6" strokeWidth="2" strokeDasharray="5,5" />
+                  <line x1="50%" y1="50%" x2="25%" y2="33%" stroke="#f59e0b" strokeWidth="2" strokeDasharray="5,5" />
+                  <line x1="50%" y1="50%" x2="67%" y2="75%" stroke="#8b5cf6" strokeWidth="2" strokeDasharray="5,5" />
+                </svg>
               </div>
+              
+              {/* Selected Location Details */}
+              <div className="bg-slate-700/30 rounded-xl p-4">
+                <div className="flex items-center gap-3 mb-3">
+                  <div className={`w-10 h-10 rounded-full ${locations[selectedLocation].color} flex items-center justify-center`}>
+                    <span className="text-xl">{locations[selectedLocation].icon}</span>
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-bold">{locations[selectedLocation].name}</h3>
+                    <p className="text-sm text-slate-400">{locations[selectedLocation].distance} from base</p>
+                  </div>
+                </div>
+                <p className="text-slate-300 mb-4">{locations[selectedLocation].description}</p>
+                <div className="grid grid-cols-3 gap-2 text-sm">
+                  <div className="bg-slate-800/50 rounded p-2 text-center">
+                    <div className="text-xs text-slate-400">Latitude</div>
+                    <div>{locations[selectedLocation].lat.toFixed(4)}°</div>
+                  </div>
+                  <div className="bg-slate-800/50 rounded p-2 text-center">
+                    <div className="text-xs text-slate-400">Longitude</div>
+                    <div>{locations[selectedLocation].lng.toFixed(4)}°</div>
+                  </div>
+                  <div className="bg-slate-800/50 rounded p-2 text-center">
+                    <div className="text-xs text-slate-400">Distance</div>
+                    <div className="text-emerald-400">{locations[selectedLocation].distance}</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            {/* All Locations List */}
+            <div className="space-y-3">
+              <h3 className="text-lg font-semibold mb-3">All Locations</h3>
+              {Object.entries(locations).map(([key, location]) => (
+                <button
+                  key={key}
+                  onClick={() => setSelectedLocation(key)}
+                  className={`w-full bg-slate-800/50 rounded-xl p-4 flex items-center gap-3 transition-colors ${
+                    selectedLocation === key ? 'ring-2 ring-emerald-500' : ''
+                  }`}
+                >
+                  <div className={`w-8 h-8 rounded-full ${location.color} flex items-center justify-center`}>
+                    <span className="text-lg">{location.icon}</span>
+                  </div>
+                  <div className="flex-1 text-left">
+                    <div className="font-medium">{location.name}</div>
+                    <div className="text-xs text-slate-400">{location.distance} • {location.description}</div>
+                  </div>
+                  <ChevronRight className="w-4 h-4 text-slate-400" />
+                </button>
+              ))}
             </div>
           </div>
         );
@@ -289,11 +519,20 @@ export default function GreenwichSDARetreatApp() {
                       className="w-full h-48 object-cover"
                     />
                     <div className="p-3">
-                      <div className="flex items-center gap-2 mb-2">
-                        <div className={`w-6 h-6 rounded-full ${photo.bg || 'bg-emerald-500'} flex items-center justify-center`}>
-                          <span className="text-xs">{photo.userAvatar}</span>
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center gap-2">
+                          <div className={`w-6 h-6 rounded-full ${photo.bg || 'bg-emerald-500'} flex items-center justify-center`}>
+                            <span className="text-xs">{photo.userAvatar}</span>
+                          </div>
+                          <span className="text-sm font-medium">{photo.userName}</span>
                         </div>
-                        <span className="text-sm font-medium">{photo.userName}</span>
+                        <button 
+                          onClick={() => likeItem('photo', photo.id)}
+                          className="flex items-center gap-1 text-pink-400"
+                        >
+                          <Heart className="w-4 h-4" />
+                          <span className="text-xs">{photo.likes}</span>
+                        </button>
                       </div>
                     </div>
                   </div>
@@ -351,15 +590,7 @@ export default function GreenwichSDARetreatApp() {
                     <p className="text-slate-300 mb-4">{request.text}</p>
                     <div className="flex items-center justify-between">
                       <button 
-                        onClick={() => {
-                          setPrayerRequests(prev => 
-                            prev.map(p => p.id === request.id 
-                              ? { ...p, prayers: p.prayers + 1 } 
-                              : p
-                            )
-                          );
-                          addNotification(`Prayed for ${request.userName}'s request`);
-                        }}
+                        onClick={() => likeItem('prayer', request.id)}
                         className="flex items-center gap-2 text-amber-400"
                       >
                         <Heart className="w-5 h-5" />
@@ -382,13 +613,63 @@ export default function GreenwichSDARetreatApp() {
         return (
           <div className="px-4 py-6">
             <div className="bg-gradient-to-r from-teal-600 to-cyan-600 rounded-2xl p-6 mb-6">
-              <h2 className="text-2xl font-bold">Testimonies</h2>
-              <p className="text-teal-100">Share how God is working</p>
+              <h2 className="text-2xl font-bold">Stories & Testimonies</h2>
+              <p className="text-teal-100">{testimonials.length} stories shared</p>
             </div>
-            <div className="bg-slate-800/50 rounded-2xl p-8 text-center">
-              <MessageCircle className="w-12 h-12 mx-auto mb-4 text-teal-400" />
-              <p className="text-slate-400">Share your testimony to encourage others</p>
+
+            {/* ADD TESTIMONY FORM - WORKING */}
+            <div className="bg-slate-800/50 rounded-2xl p-6 mb-6">
+              <h3 className="text-lg font-semibold mb-4">Share Your Story</h3>
+              <textarea
+                value={testimonialText}
+                onChange={(e) => setTestimonialText(e.target.value)}
+                placeholder="How has God worked in your life during this retreat?"
+                className="w-full bg-slate-700/50 rounded-lg px-4 py-3 min-h-32 mb-4"
+              />
+              <button
+                onClick={addTestimonial}
+                className="w-full bg-gradient-to-r from-teal-600 to-cyan-600 py-3 rounded-lg font-semibold"
+              >
+                Share Story
+              </button>
             </div>
+
+            {/* DISPLAY TESTIMONIES - WORKING */}
+            {testimonials.length > 0 ? (
+              <div className="space-y-4">
+                {testimonials.map(testimonial => (
+                  <div key={testimonial.id} className="bg-slate-800/50 rounded-2xl p-6">
+                    <div className="flex items-center gap-3 mb-4">
+                      <div className={`w-10 h-10 rounded-full ${testimonial.bg || 'bg-teal-500'} flex items-center justify-center`}>
+                        <span className="text-lg">{testimonial.userAvatar}</span>
+                      </div>
+                      <div>
+                        <h3 className="font-bold">{testimonial.userName}</h3>
+                        <p className="text-xs text-slate-400">
+                          {new Date(testimonial.timestamp).toLocaleDateString()}
+                        </p>
+                      </div>
+                    </div>
+                    <p className="text-slate-300 mb-4 italic">"{testimonial.text}"</p>
+                    <div className="flex items-center justify-between">
+                      <button 
+                        onClick={() => likeItem('testimonial', testimonial.id)}
+                        className="flex items-center gap-2 text-teal-400"
+                      >
+                        <Heart className="w-5 h-5" />
+                        <span>{testimonial.likes} likes</span>
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="bg-slate-800/50 rounded-xl p-8 text-center">
+                <MessageCircle className="w-12 h-12 mx-auto mb-4 text-teal-400" />
+                <p className="text-slate-400">No stories yet</p>
+                <p className="text-sm text-slate-500 mt-2">Share your story to encourage others</p>
+              </div>
+            )}
           </div>
         );
 
@@ -424,7 +705,7 @@ export default function GreenwichSDARetreatApp() {
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-2">
               <MapPin className="w-4 h-4" />
-              <span className="text-sm">Bury Jubilee Centre</span>
+              <span className="text-sm">{locations[selectedLocation].name}</span>
             </div>
             <div className="flex items-center gap-2">
               <Clock className="w-4 h-4" />
@@ -447,13 +728,17 @@ export default function GreenwichSDARetreatApp() {
       </div>
 
       {/* Community Preview (only on schedule tab) */}
-      {activeTab === 'schedule' && (latestPhoto || latestPrayer) && (
+      {activeTab === 'schedule' && (latestPhoto || latestPrayer || latestTestimonial) && (
         <div className="px-4 py-6">
           <div className="mb-6">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-bold">Community Activity</h2>
               <button 
-                onClick={() => setActiveTab(photos.length ? 'photos' : 'prayer')}
+                onClick={() => {
+                  if (latestPhoto) setActiveTab('photos');
+                  else if (latestPrayer) setActiveTab('prayer');
+                  else if (latestTestimonial) setActiveTab('testimonials');
+                }}
                 className="text-emerald-400 text-sm font-medium"
               >
                 View All
@@ -480,6 +765,7 @@ export default function GreenwichSDARetreatApp() {
                       </div>
                       <span className="text-sm">{latestPhoto.userName}</span>
                     </div>
+                    <span className="text-xs text-slate-400">{latestPhoto.likes} likes</span>
                   </div>
                 </div>
               )}
@@ -502,6 +788,28 @@ export default function GreenwichSDARetreatApp() {
                       <span className="text-sm">{latestPrayer.userName}</span>
                     </div>
                     <span className="text-xs text-slate-400">{latestPrayer.prayers} prayers</span>
+                  </div>
+                </div>
+              )}
+              
+              {latestTestimonial && (
+                <div 
+                  onClick={() => setActiveTab('testimonials')}
+                  className="flex-shrink-0 w-64 bg-slate-800/50 rounded-xl p-4 border border-slate-700 active:scale-95 transition-transform cursor-pointer"
+                >
+                  <div className="flex items-center gap-3 mb-3">
+                    <MessageCircle className="w-5 h-5 text-teal-400" />
+                    <span className="font-medium">Latest Story</span>
+                  </div>
+                  <p className="text-sm text-slate-300 line-clamp-2 mb-3 italic">"{latestTestimonial.text}"</p>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <div className={`w-6 h-6 rounded-full ${latestTestimonial.bg || 'bg-teal-500'} flex items-center justify-center`}>
+                        <span className="text-xs">{latestTestimonial.userAvatar}</span>
+                      </div>
+                      <span className="text-sm">{latestTestimonial.userName}</span>
+                    </div>
+                    <span className="text-xs text-slate-400">{latestTestimonial.likes} likes</span>
                   </div>
                 </div>
               )}
@@ -627,7 +935,7 @@ export default function GreenwichSDARetreatApp() {
                 />
               </div>
               
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-3 gap-4">
                 <div className="bg-slate-700/30 rounded-lg p-3 text-center">
                   <div className="text-2xl font-bold text-emerald-400">{photos.filter(p => p.userId === currentUser.id).length}</div>
                   <div className="text-sm">Photos</div>
@@ -635,6 +943,10 @@ export default function GreenwichSDARetreatApp() {
                 <div className="bg-slate-700/30 rounded-lg p-3 text-center">
                   <div className="text-2xl font-bold text-teal-400">{prayerRequests.filter(p => p.userId === currentUser.id).length}</div>
                   <div className="text-sm">Prayers</div>
+                </div>
+                <div className="bg-slate-700/30 rounded-lg p-3 text-center">
+                  <div className="text-2xl font-bold text-cyan-400">{testimonials.filter(t => t.userId === currentUser.id).length}</div>
+                  <div className="text-sm">Stories</div>
                 </div>
               </div>
               
