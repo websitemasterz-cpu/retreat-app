@@ -1,7 +1,6 @@
 // src/App.jsx
 import React, { useState, useEffect } from 'react';
 import { Calendar, MapPin, Camera, Heart, Book, Users, Mountain, MessageCircle, Upload, Navigation, Clock, Sun, Cloud } from 'lucide-react';
-import { GoogleMap, LoadScript, Marker, InfoWindow } from '@react-google-maps/api';
 
 export default function GreenwichSDARetreatApp() {
   const [activeTab, setActiveTab] = useState('schedule');
