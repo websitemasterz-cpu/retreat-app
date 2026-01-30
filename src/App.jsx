@@ -1,19 +1,42 @@
 // src/App.jsx
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Calendar, MapPin, Camera, Heart, Book, Users, Mountain, MessageCircle, Upload, Navigation, Clock, Sun, Cloud, CloudRain, Thermometer, Droplets, Wind, CloudSnow, CloudLightning } from 'lucide-react';
 
 export default function GreenwichSDARetreatApp() {
+  // State management with localStorage
   const [activeTab, setActiveTab] = useState('schedule');
   const [currentLocation, setCurrentLocation] = useState(null);
   const [currentTime, setCurrentTime] = useState(new Date());
+  const [showUserModal, setShowUserModal] = useState(false);
+  const [prayerText, setPrayerText] = useState('');
+  const [testimonialText, setTestimonialText] = useState('');
+  const [photoCaption, setPhotoCaption] = useState({});
+  const [photoComment, setPhotoComment] = useState({});
+
+  // Load data from localStorage on initial render
+  const [photos, setPhotos] = useState(() => {
+    const saved = localStorage.getItem('retreatPhotos');
+    return saved ? JSON.parse(saved) : [];
+  });
+  
+  const [prayerRequests, setPrayerRequests] = useState(() => {
+    const saved = localStorage.getItem('retreatPrayerRequests');
+    return saved ? JSON.parse(saved) : [];
+  });
+  
+  const [testimonials, setTestimonials] = useState(() => {
+    const saved = localStorage.getItem('retreatTestimonials');
+    return saved ? JSON.parse(saved) : [];
+  });
+
+  const [userName, setUserName] = useState(() => {
+    return localStorage.getItem('retreatUserName') || '';
+  });
+
   const [weather, setWeather] = useState(null);
   const [weatherLoading, setWeatherLoading] = useState(false);
-  const [photos, setPhotos] = useState([]);
-  const [prayerRequests, setPrayerRequests] = useState([]);
-  const [testimonials, setTestimonials] = useState([]);
-  const [comments, setComments] = useState({});
 
-  // Mock weather data (in real app, you'd fetch from weather API)
+  // Mock weather data
   const mockWeatherData = {
     temperature: 18,
     condition: 'Partly Cloudy',
@@ -158,6 +181,25 @@ export default function GreenwichSDARetreatApp() {
     }
   ];
 
+  // Save to localStorage whenever data changes
+  useEffect(() => {
+    localStorage.setItem('retreatPhotos', JSON.stringify(photos));
+  }, [photos]);
+
+  useEffect(() => {
+    localStorage.setItem('retreatPrayerRequests', JSON.stringify(prayerRequests));
+  }, [prayerRequests]);
+
+  useEffect(() => {
+    localStorage.setItem('retreatTestimonials', JSON.stringify(testimonials));
+  }, [testimonials]);
+
+  useEffect(() => {
+    if (userName) {
+      localStorage.setItem('retreatUserName', userName);
+    }
+  }, [userName]);
+
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 60000);
     
@@ -174,7 +216,7 @@ export default function GreenwichSDARetreatApp() {
       );
     }
 
-    // Set mock weather data (in real app, fetch from API)
+    // Set mock weather data
     setWeather(mockWeatherData);
 
     return () => clearInterval(timer);
@@ -200,41 +242,136 @@ export default function GreenwichSDARetreatApp() {
     return (R * c).toFixed(1);
   };
 
-  const handlePhotoUpload = (e) => {
+  // Prayer request functions
+  const addPrayerRequest = useCallback((text, author = 'Anonymous') => {
+    const newRequest = {
+      id: Date.now(),
+      text,
+      author: author || 'Anonymous',
+      timestamp: new Date().toISOString(),
+      prayers: 0,
+      userLocation: currentLocation ? {
+        lat: currentLocation.lat,
+        lng: currentLocation.lng
+      } : null
+    };
+    
+    setPrayerRequests(prev => [newRequest, ...prev]);
+    return newRequest;
+  }, [currentLocation]);
+
+  const incrementPrayerCount = useCallback((id) => {
+    setPrayerRequests(prev =>
+      prev.map(request =>
+        request.id === id
+          ? { ...request, prayers: request.prayers + 1 }
+          : request
+      )
+    );
+  }, []);
+
+  const deletePrayerRequest = useCallback((id) => {
+    setPrayerRequests(prev => prev.filter(request => request.id !== id));
+  }, []);
+
+  // Testimonial functions
+  const addTestimonial = useCallback((text, author = 'Brother in Christ') => {
+    const newTestimonial = {
+      id: Date.now(),
+      text,
+      author: author || 'Brother in Christ',
+      timestamp: new Date().toISOString(),
+      likes: 0
+    };
+    
+    setTestimonials(prev => [newTestimonial, ...prev]);
+    return newTestimonial;
+  }, []);
+
+  const likeTestimonial = useCallback((id) => {
+    setTestimonials(prev =>
+      prev.map(testimonial =>
+        testimonial.id === id
+          ? { ...testimonial, likes: testimonial.likes + 1 }
+          : testimonial
+      )
+    );
+  }, []);
+
+  const deleteTestimonial = useCallback((id) => {
+    setTestimonials(prev => prev.filter(testimonial => testimonial.id !== id));
+  }, []);
+
+  // Photo functions
+  const handlePhotoUpload = useCallback((e) => {
     const file = e.target.files[0];
     if (file) {
       const reader = new FileReader();
       reader.onloadend = () => {
-        setPhotos([...photos, {
+        const newPhoto = {
           id: Date.now(),
           src: reader.result,
           caption: '',
-          timestamp: new Date(),
-          comments: []
-        }]);
+          timestamp: new Date().toISOString(),
+          comments: [],
+          likes: 0,
+          author: userName || 'Anonymous',
+          location: currentLocation ? {
+            lat: currentLocation.lat,
+            lng: currentLocation.lng
+          } : null
+        };
+        
+        setPhotos(prev => [newPhoto, ...prev]);
       };
       reader.readAsDataURL(file);
     }
-  };
+  }, [userName, currentLocation]);
 
-  const addPrayerRequest = (text) => {
-    setPrayerRequests([...prayerRequests, {
-      id: Date.now(),
-      text,
-      author: 'Anonymous',
-      timestamp: new Date(),
-      prayers: 0
-    }]);
-  };
+  const updatePhotoCaption = useCallback((photoId, caption) => {
+    setPhotos(prev =>
+      prev.map(photo =>
+        photo.id === photoId
+          ? { ...photo, caption }
+          : photo
+      )
+    );
+  }, []);
 
-  const addTestimonial = (text) => {
-    setTestimonials([...testimonials, {
-      id: Date.now(),
-      text,
-      author: 'Brother in Christ',
-      timestamp: new Date()
-    }]);
-  };
+  const addCommentToPhoto = useCallback((photoId, commentText) => {
+    setPhotos(prev =>
+      prev.map(photo =>
+        photo.id === photoId
+          ? {
+              ...photo,
+              comments: [
+                ...photo.comments,
+                {
+                  id: Date.now(),
+                  text: commentText,
+                  author: userName || 'Anonymous',
+                  timestamp: new Date().toISOString()
+                }
+              ]
+            }
+          : photo
+      )
+    );
+  }, [userName]);
+
+  const likePhoto = useCallback((photoId) => {
+    setPhotos(prev =>
+      prev.map(photo =>
+        photo.id === photoId
+          ? { ...photo, likes: photo.likes + 1 }
+          : photo
+      )
+    );
+  }, []);
+
+  const deletePhoto = useCallback((id) => {
+    setPhotos(prev => prev.filter(photo => photo.id !== id));
+  }, []);
 
   // Get weather icon based on condition
   const getWeatherIcon = (condition) => {
@@ -246,8 +383,26 @@ export default function GreenwichSDARetreatApp() {
     return <Cloud className="w-5 h-5 text-slate-300" />;
   };
 
+  // User stats calculation
+  const userStats = {
+    prayers: prayerRequests.filter(p => p.author === userName).length,
+    testimonials: testimonials.filter(t => t.author === userName).length,
+    photos: photos.filter(p => p.author === userName).length,
+    totalPrayersReceived: prayerRequests
+      .filter(p => p.author === userName)
+      .reduce((total, p) => total + p.prayers, 0)
+  };
+
   const currentSchedule = getDaySchedule();
   const currentHour = currentTime.getHours() + (currentTime.getMinutes() / 60);
+
+  // Reset all data function
+  const resetAllData = () => {
+    if (window.confirm('Are you sure you want to reset all data? This cannot be undone.')) {
+      localStorage.clear();
+      window.location.reload();
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-800 text-white">
@@ -287,35 +442,91 @@ export default function GreenwichSDARetreatApp() {
                     <Thermometer className="w-3 h-3 text-amber-300" />
                     <span className="text-xs text-slate-200">Feels {weather.feelsLike}°</span>
                   </div>
-                  <div className="h-4 w-px bg-sky-600/50"></div>
-                  <div className="flex items-center gap-1">
-                    <Droplets className="w-3 h-3 text-blue-300" />
-                    <span className="text-xs text-slate-200">{weather.humidity}%</span>
-                  </div>
-                  <div className="h-4 w-px bg-sky-600/50"></div>
-                  <div className="flex items-center gap-1">
-                    <Wind className="w-3 h-3 text-teal-300" />
-                    <span className="text-xs text-slate-200">{weather.windSpeed} km/h</span>
-                  </div>
                 </div>
               </div>
             )}
             
-            {/* Quick Forecast */}
-            {weather && (
-              <div className="hidden md:flex items-center gap-1 bg-slate-900/60 px-3 py-1.5 rounded-full border border-slate-700/50">
-                {weather.forecast.map((day, idx) => (
-                  <div key={idx} className="flex flex-col items-center px-2">
-                    <span className="text-xs text-slate-300">{day.day}</span>
-                    <span className="text-sm font-semibold text-white">{day.high}°</span>
-                    <span className="text-xs text-slate-400">{day.low}°</span>
-                  </div>
-                ))}
-              </div>
-            )}
+            {/* User Profile Button */}
+            <button
+              onClick={() => setShowUserModal(true)}
+              className="flex items-center gap-2 bg-emerald-700/50 hover:bg-emerald-600/50 px-3 py-1.5 rounded-full transition-colors"
+            >
+              <Users className="w-4 h-4" />
+              <span>{userName || 'Set Your Name'}</span>
+            </button>
           </div>
         </div>
       </div>
+
+      {/* User Profile Modal */}
+      {showUserModal && (
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-gradient-to-br from-slate-800 to-slate-900 rounded-2xl p-6 max-w-md w-full border border-emerald-700/50 shadow-2xl">
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-2xl font-bold text-emerald-300">Your Profile</h2>
+              <button
+                onClick={() => setShowUserModal(false)}
+                className="text-slate-400 hover:text-white p-1"
+              >
+                ✕
+              </button>
+            </div>
+            
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm text-slate-300 mb-2">Your Name</label>
+                <input
+                  type="text"
+                  value={userName}
+                  onChange={(e) => setUserName(e.target.value)}
+                  placeholder="Enter your name"
+                  className="w-full bg-slate-700/50 border border-slate-600 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                />
+                <p className="text-xs text-slate-400 mt-1">This will be shown with your submissions</p>
+              </div>
+              
+              <div className="pt-4 border-t border-slate-700">
+                <h3 className="text-lg font-semibold mb-3">Your Retreat Contributions</h3>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="bg-slate-700/30 rounded-lg p-3 text-center">
+                    <div className="text-2xl font-bold text-emerald-400">{userStats.prayers}</div>
+                    <div className="text-sm text-slate-300">Prayers Shared</div>
+                  </div>
+                  <div className="bg-slate-700/30 rounded-lg p-3 text-center">
+                    <div className="text-2xl font-bold text-teal-400">{userStats.testimonials}</div>
+                    <div className="text-sm text-slate-300">Testimonials</div>
+                  </div>
+                  <div className="bg-slate-700/30 rounded-lg p-3 text-center">
+                    <div className="text-2xl font-bold text-blue-400">{userStats.photos}</div>
+                    <div className="text-sm text-slate-300">Photos</div>
+                  </div>
+                  <div className="bg-slate-700/30 rounded-lg p-3 text-center">
+                    <div className="text-2xl font-bold text-amber-400">{userStats.totalPrayersReceived}</div>
+                    <div className="text-sm text-slate-300">Prayers Received</div>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="pt-4 border-t border-slate-700">
+                <button
+                  onClick={resetAllData}
+                  className="w-full bg-gradient-to-r from-red-700/30 to-red-800/30 hover:from-red-600/40 hover:to-red-700/40 py-3 rounded-lg font-semibold transition-all border border-red-700/30"
+                >
+                  Reset All Data
+                </button>
+                <p className="text-xs text-slate-400 mt-2 text-center">This will clear all prayer requests, testimonials, and photos</p>
+              </div>
+              
+              <button
+                onClick={() => setShowUserModal(false)}
+                className="w-full bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 py-3 rounded-lg font-semibold transition-all mt-2"
+              >
+                Save & Continue
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Navigation Tabs */}
       <div className="bg-slate-800/50 backdrop-blur-sm border-b border-slate-700 sticky top-0 z-40">
@@ -700,29 +911,90 @@ export default function GreenwichSDARetreatApp() {
             {photos.length > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {photos.map((photo) => (
-                  <div key={photo.id} className="bg-slate-800/70 backdrop-blur rounded-xl overflow-hidden border border-slate-700">
+                  <div key={photo.id} className="bg-slate-800/70 backdrop-blur rounded-xl overflow-hidden border border-slate-700 hover:border-pink-500 transition-all">
                     <img src={photo.src} alt="Retreat" className="w-full h-64 object-cover" />
                     <div className="p-4">
-                      <p className="text-sm text-slate-400">
-                        {photo.timestamp.toLocaleDateString('en-GB', { 
-                          day: 'numeric', 
-                          month: 'long', 
-                          year: 'numeric',
-                          hour: '2-digit',
-                          minute: '2-digit'
-                        })}
-                      </p>
-                      <div className="mt-3">
-                        <input
-                          type="text"
-                          placeholder="Add a caption..."
-                          className="w-full bg-slate-700/50 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-pink-400"
-                        />
+                      <div className="flex justify-between items-start mb-2">
+                        <div>
+                          <p className="text-sm font-medium text-pink-300">{photo.author}</p>
+                          <p className="text-xs text-slate-400">
+                            {new Date(photo.timestamp).toLocaleDateString('en-GB', { 
+                              day: 'numeric', 
+                              month: 'long', 
+                              year: 'numeric',
+                              hour: '2-digit',
+                              minute: '2-digit'
+                            })}
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => likePhoto(photo.id)}
+                            className="flex items-center gap-1 text-pink-400 hover:text-pink-300"
+                          >
+                            <Heart className={`w-4 h-4 ${photo.likes > 0 ? 'fill-pink-400' : ''}`} />
+                            <span className="text-xs">{photo.likes}</span>
+                          </button>
+                          {photo.author === userName && (
+                            <button
+                              onClick={() => deletePhoto(photo.id)}
+                              className="text-xs text-slate-500 hover:text-red-400"
+                            >
+                              Delete
+                            </button>
+                          )}
+                        </div>
                       </div>
-                      <button className="mt-3 flex items-center gap-2 text-pink-400 hover:text-pink-300 text-sm">
-                        <MessageCircle className="w-4 h-4" />
-                        <span>Add comment</span>
-                      </button>
+                      
+                      <input
+                        type="text"
+                        value={photoCaption[photo.id] || photo.caption}
+                        onChange={(e) => {
+                          setPhotoCaption({...photoCaption, [photo.id]: e.target.value});
+                          updatePhotoCaption(photo.id, e.target.value);
+                        }}
+                        placeholder="Add a caption..."
+                        className="w-full bg-slate-700/50 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-pink-400 mb-3"
+                      />
+                      
+                      {/* Comments Section */}
+                      <div className="space-y-2">
+                        {photo.comments.map((comment) => (
+                          <div key={comment.id} className="text-xs bg-slate-700/30 rounded p-2">
+                            <div className="flex justify-between">
+                              <span className="font-medium text-pink-200">{comment.author}</span>
+                              <span className="text-slate-500">
+                                {new Date(comment.timestamp).toLocaleTimeString('en-GB', { 
+                                  hour: '2-digit', 
+                                  minute: '2-digit' 
+                                })}
+                              </span>
+                            </div>
+                            <p className="text-slate-300 mt-1">{comment.text}</p>
+                          </div>
+                        ))}
+                        
+                        <div className="flex gap-2">
+                          <input
+                            type="text"
+                            value={photoComment[photo.id] || ''}
+                            onChange={(e) => setPhotoComment({...photoComment, [photo.id]: e.target.value})}
+                            placeholder="Add a comment..."
+                            className="flex-1 bg-slate-700/50 rounded-lg px-3 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-pink-400"
+                          />
+                          <button
+                            onClick={() => {
+                              if (photoComment[photo.id]?.trim()) {
+                                addCommentToPhoto(photo.id, photoComment[photo.id]);
+                                setPhotoComment({...photoComment, [photo.id]: ''});
+                              }
+                            }}
+                            className="text-pink-400 hover:text-pink-300 text-sm px-3"
+                          >
+                            Post
+                          </button>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 ))}
@@ -748,53 +1020,79 @@ export default function GreenwichSDARetreatApp() {
             <div className="bg-slate-800/70 backdrop-blur rounded-xl p-6 border border-slate-700">
               <h3 className="text-lg font-semibold mb-4">Submit a Prayer Request</h3>
               <textarea
+                value={prayerText}
+                onChange={(e) => setPrayerText(e.target.value)}
                 placeholder="Share what's on your heart..."
                 className="w-full bg-slate-700/50 rounded-lg px-4 py-3 min-h-32 focus:outline-none focus:ring-2 focus:ring-amber-400 mb-4"
               />
-              <button
-                onClick={() => {
-                  const textarea = document.querySelector('textarea');
-                  if (textarea.value.trim()) {
-                    addPrayerRequest(textarea.value);
-                    textarea.value = '';
-                  }
-                }}
-                className="bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-500 hover:to-orange-500 px-6 py-3 rounded-lg font-semibold transition-all"
-              >
-                Submit Prayer Request
-              </button>
+              <div className="flex items-center gap-4">
+                <button
+                  onClick={() => {
+                    if (prayerText.trim()) {
+                      addPrayerRequest(prayerText, userName);
+                      setPrayerText('');
+                      alert('Prayer request submitted! 🙏');
+                    }
+                  }}
+                  className="bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-500 hover:to-orange-500 px-6 py-3 rounded-lg font-semibold transition-all"
+                >
+                  Submit Prayer Request
+                </button>
+                <div className="text-sm text-slate-400">
+                  {userName ? `Posting as: ${userName}` : 'Set your name in profile'}
+                </div>
+              </div>
             </div>
 
             {/* Prayer List */}
             <div className="space-y-4">
               {prayerRequests.length > 0 ? (
                 prayerRequests.map((request) => (
-                  <div key={request.id} className="bg-slate-800/70 backdrop-blur rounded-xl p-6 border border-slate-700">
+                  <div key={request.id} className="bg-slate-800/70 backdrop-blur rounded-xl p-6 border border-slate-700 hover:border-amber-500/50 transition-colors">
                     <div className="flex items-start gap-4">
                       <Heart className="w-6 h-6 text-amber-400 flex-shrink-0 mt-1" />
                       <div className="flex-1">
                         <p className="text-slate-300 leading-relaxed mb-3">{request.text}</p>
-                        <div className="flex items-center gap-4 text-sm">
-                          <span className="text-slate-500">
-                            {request.timestamp.toLocaleDateString('en-GB', { 
-                              day: 'numeric', 
-                              month: 'short',
-                              hour: '2-digit',
-                              minute: '2-digit'
-                            })}
-                          </span>
-                          <button
-                            onClick={() => {
-                              const updated = prayerRequests.map(r =>
-                                r.id === request.id ? { ...r, prayers: r.prayers + 1 } : r
-                              );
-                              setPrayerRequests(updated);
-                            }}
-                            className="flex items-center gap-1 text-amber-400 hover:text-amber-300"
-                          >
-                            <Heart className="w-4 h-4 fill-current" />
-                            <span>{request.prayers} prayed</span>
-                          </button>
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-4 text-sm">
+                            <span className="text-amber-300 font-medium">{request.author}</span>
+                            <span className="text-slate-500">
+                              {new Date(request.timestamp).toLocaleDateString('en-GB', { 
+                                day: 'numeric', 
+                                month: 'short',
+                                hour: '2-digit',
+                                minute: '2-digit'
+                              })}
+                            </span>
+                            {request.userLocation && (
+                              <span className="text-xs text-slate-400 flex items-center gap-1">
+                                <MapPin className="w-3 h-3" />
+                                {calculateDistance(
+                                  request.userLocation.lat,
+                                  request.userLocation.lng,
+                                  baseLocation.lat,
+                                  baseLocation.lng
+                                )} km from base
+                              </span>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-3">
+                            <button
+                              onClick={() => incrementPrayerCount(request.id)}
+                              className="flex items-center gap-1 text-amber-400 hover:text-amber-300 transition-colors"
+                            >
+                              <Heart className={`w-4 h-4 ${request.prayers > 0 ? 'fill-amber-400' : ''}`} />
+                              <span>{request.prayers} prayed</span>
+                            </button>
+                            {userName === request.author && (
+                              <button
+                                onClick={() => deletePrayerRequest(request.id)}
+                                className="text-slate-500 hover:text-red-400 text-sm"
+                              >
+                                Delete
+                              </button>
+                            )}
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -822,42 +1120,68 @@ export default function GreenwichSDARetreatApp() {
             <div className="bg-slate-800/70 backdrop-blur rounded-xl p-6 border border-slate-700">
               <h3 className="text-lg font-semibold mb-4">Share Your Testimony</h3>
               <textarea
+                value={testimonialText}
+                onChange={(e) => setTestimonialText(e.target.value)}
                 placeholder="How has God moved in your life during this retreat?"
                 className="w-full bg-slate-700/50 rounded-lg px-4 py-3 min-h-32 focus:outline-none focus:ring-2 focus:ring-teal-400 mb-4"
               />
-              <button
-                onClick={() => {
-                  const textarea = document.querySelectorAll('textarea')[0];
-                  if (textarea.value.trim()) {
-                    addTestimonial(textarea.value);
-                    textarea.value = '';
-                  }
-                }}
-                className="bg-gradient-to-r from-teal-600 to-cyan-600 hover:from-teal-500 hover:to-cyan-500 px-6 py-3 rounded-lg font-semibold transition-all"
-              >
-                Share Testimony
-              </button>
+              <div className="flex items-center gap-4">
+                <button
+                  onClick={() => {
+                    if (testimonialText.trim()) {
+                      addTestimonial(testimonialText, userName);
+                      setTestimonialText('');
+                      alert('Testimony shared! 🙌');
+                    }
+                  }}
+                  className="bg-gradient-to-r from-teal-600 to-cyan-600 hover:from-teal-500 hover:to-cyan-500 px-6 py-3 rounded-lg font-semibold transition-all"
+                >
+                  Share Testimony
+                </button>
+                <div className="text-sm text-slate-400">
+                  {userName ? `Posting as: ${userName}` : 'Set your name in profile'}
+                </div>
+              </div>
             </div>
 
             {/* Testimonial List */}
             <div className="space-y-4">
               {testimonials.length > 0 ? (
                 testimonials.map((testimony) => (
-                  <div key={testimony.id} className="bg-slate-800/70 backdrop-blur rounded-xl p-6 border border-slate-700">
+                  <div key={testimony.id} className="bg-slate-800/70 backdrop-blur rounded-xl p-6 border border-slate-700 hover:border-teal-500/50 transition-colors">
                     <div className="flex items-start gap-4">
                       <Users className="w-6 h-6 text-teal-400 flex-shrink-0 mt-1" />
                       <div className="flex-1">
                         <p className="text-slate-300 leading-relaxed mb-3 italic">"{testimony.text}"</p>
-                        <div className="flex items-center gap-4 text-sm">
-                          <span className="text-teal-400 font-medium">{testimony.author}</span>
-                          <span className="text-slate-500">
-                            {testimony.timestamp.toLocaleDateString('en-GB', { 
-                              day: 'numeric', 
-                              month: 'long',
-                              hour: '2-digit',
-                              minute: '2-digit'
-                            })}
-                          </span>
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-4 text-sm">
+                            <span className="text-teal-400 font-medium">{testimony.author}</span>
+                            <span className="text-slate-500">
+                              {new Date(testimony.timestamp).toLocaleDateString('en-GB', { 
+                                day: 'numeric', 
+                                month: 'long',
+                                hour: '2-digit',
+                                minute: '2-digit'
+                              })}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-3">
+                            <button
+                              onClick={() => likeTestimonial(testimony.id)}
+                              className="flex items-center gap-1 text-teal-400 hover:text-teal-300"
+                            >
+                              <Heart className={`w-4 h-4 ${testimony.likes > 0 ? 'fill-teal-400' : ''}`} />
+                              <span>{testimony.likes}</span>
+                            </button>
+                            {userName === testimony.author && (
+                              <button
+                                onClick={() => deleteTestimonial(testimony.id)}
+                                className="text-slate-500 hover:text-red-400 text-sm"
+                              >
+                                Delete
+                              </button>
+                            )}
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -933,6 +1257,9 @@ export default function GreenwichSDARetreatApp() {
           <p className="mb-2">Greenwich SDA Men's Ministry</p>
           <p className="text-sm">Bury Jubilee Outdoor Pursuits Centre, Glenridding, Cumbria CA11 0QR</p>
           <p className="text-sm mt-4 italic">"Be strong and courageous. Do not be afraid." - Joshua 1:9</p>
+          <p className="text-xs text-slate-500 mt-4">
+            All data is stored locally in your browser. Clear browser data to reset.
+          </p>
         </div>
       </div>
     </div>
