@@ -1755,7 +1755,7 @@ export default function GreenwichSDARetreatApp() {
               >
                 <div className="w-10 h-10 bg-white rounded-lg flex items-center justify-center">
                   <img 
-      src="https://share.google/J672nHZ6qf0Z9kEzt" 
+      src="https://images.squarespace-cdn.com/content/v1/590fd8abe4fcb51284015b20/afe1b31a-bc8f-43db-b878-e5b9b454f75c/OurIdentityLOGO.png?format=2500w" 
       alt="Mountain Logo" 
       className="w-8 h-8"
     />
