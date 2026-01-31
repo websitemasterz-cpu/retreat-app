@@ -1,11 +1,13 @@
-// src/App.jsx - COMPLETE WORKING VERSION
-import React, { useState, useEffect, useCallback } from 'react';
+// src/App.jsx - ENHANCED VERSION WITH ALL FEATURES
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { 
   Calendar, MapPin, Camera, Heart, Book, Users, Mountain, MessageCircle, 
   Upload, Navigation, Clock, Sun, Cloud, CloudRain, Thermometer, Droplets, Wind, 
   CloudSnow, CloudLightning, Bell, X, AlertCircle, Battery, Wifi, 
   CheckCircle, Trophy, RefreshCw, WifiOff, Zap, Gift, Download, Share,
-  Sunrise, Sunset, Moon
+  Sunrise, Sunset, Moon, ArrowUp, Compass, Target, Activity, TrendingUp,
+  Star, Map, Shield, Phone, Coffee, Home, Music, Edit, ChevronUp,
+  CheckSquare, Coffee as CoffeeIcon, Dumbbell, CalendarDays, Users as GroupIcon
 } from 'lucide-react';
 
 export default function GreenwichSDARetreatApp() {
@@ -39,6 +41,14 @@ export default function GreenwichSDARetreatApp() {
   const [hikeProgress, setHikeProgress] = useState(45);
   const [connectionStatus, setConnectionStatus] = useState('online');
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [showBackToTop, setShowBackToTop] = useState(false);
+  const [checkedInAttractions, setCheckedInAttractions] = useState({});
+  const [komootFeatures, setKomootFeatures] = useState({
+    trails: [],
+    currentRoute: null,
+    elevationGain: 0,
+    distanceCovered: 0
+  });
 
   // Load data from localStorage
   const [photos, setPhotos] = useState(() => {
@@ -70,6 +80,9 @@ export default function GreenwichSDARetreatApp() {
       points: 150,
       level: 1,
       rank: 'Explorer',
+      badges: ['Early Riser'],
+      checkIns: 0,
+      totalDistance: 0
     };
   });
 
@@ -80,13 +93,58 @@ export default function GreenwichSDARetreatApp() {
     name: 'Bury Jubilee Outdoor Pursuits Centre'
   };
 
-  // Hiking locations
+  // Hiking locations with check-in capability
   const locations = {
-    base: { lat: 54.5262, lng: -2.9620, name: 'Bury Jubilee Centre, Glenridding', icon: '🏠', color: 'bg-emerald-500' },
-    glenriddingDodd: { lat: 54.5350, lng: -2.9500, name: 'Glenridding Dodd', icon: '🥾', color: 'bg-green-500' },
-    airaForce: { lat: 54.5733, lng: -2.9067, name: 'Aira Force Waterfall', icon: '💧', color: 'bg-blue-500' },
-    helvellyn: { lat: 54.5275, lng: -3.0164, name: 'Helvellyn Summit', icon: '⛰️', color: 'bg-amber-500' },
-    ullswater: { lat: 54.5500, lng: -2.9300, name: 'Ullswater Lake', icon: '🛥️', color: 'bg-indigo-500' }
+    base: { 
+      lat: 54.5262, 
+      lng: -2.9620, 
+      name: 'Bury Jubilee Centre', 
+      icon: '🏠', 
+      color: 'bg-emerald-500',
+      description: 'Home base for the retreat',
+      difficulty: 'Easy',
+      points: 10
+    },
+    glenriddingDodd: { 
+      lat: 54.5350, 
+      lng: -2.9500, 
+      name: 'Glenridding Dodd', 
+      icon: '🥾', 
+      color: 'bg-green-500',
+      description: 'Gentle fell walk with panoramic views',
+      difficulty: 'Easy to Moderate',
+      points: 20
+    },
+    airaForce: { 
+      lat: 54.5733, 
+      lng: -2.9067, 
+      name: 'Aira Force Waterfall', 
+      icon: '💧', 
+      color: 'bg-blue-500',
+      description: 'Spectacular 65-foot cascade',
+      difficulty: 'Easy',
+      points: 25
+    },
+    helvellyn: { 
+      lat: 54.5275, 
+      lng: -3.0164, 
+      name: 'Helvellyn Summit', 
+      icon: '⛰️', 
+      color: 'bg-amber-500',
+      description: 'England\'s 3rd highest peak',
+      difficulty: 'Challenging',
+      points: 50
+    },
+    ullswater: { 
+      lat: 54.5500, 
+      lng: -2.9300, 
+      name: 'Ullswater Lake', 
+      icon: '🛥️', 
+      color: 'bg-indigo-500',
+      description: 'Beautiful lake for steamer rides',
+      difficulty: 'Easy',
+      points: 15
+    }
   };
 
   // Daily schedule
@@ -155,51 +213,73 @@ export default function GreenwichSDARetreatApp() {
     }
   };
 
-  // Local attractions
+  // Local attractions with check-in support
   const attractions = [
     {
+      id: 'airaForce',
       name: 'Aira Force Waterfall',
       distance: '4.8 km',
       description: 'Spectacular 65-foot cascade through ancient woodland. National Trust site with well-maintained paths.',
       duration: '2-3 hours',
-      difficulty: 'Easy to Moderate'
+      difficulty: 'Easy to Moderate',
+      points: 25,
+      icon: '💧'
     },
     {
+      id: 'helvellyn',
       name: 'Helvellyn Summit',
       distance: '6.5 km',
       description: 'England\'s 3rd highest peak (950m). Famous Striding Edge scramble route with breathtaking views.',
       duration: '6-7 hours',
-      difficulty: 'Challenging'
+      difficulty: 'Challenging',
+      points: 50,
+      icon: '⛰️'
     },
     {
+      id: 'ullswater',
       name: 'Ullswater Steamers',
       distance: 'At lakefront',
       description: 'Historic boat cruises on England\'s most beautiful lake. Multiple departure times daily.',
       duration: '1-2 hours',
-      difficulty: 'Easy'
+      difficulty: 'Easy',
+      points: 15,
+      icon: '🛥️'
     },
     {
+      id: 'glenriddingDodd',
       name: 'Glenridding Dodd',
       distance: '2.5 km',
       description: 'Gentle fell walk with panoramic views over Ullswater. Perfect acclimatisation hike.',
       duration: '2 hours',
-      difficulty: 'Easy to Moderate'
+      difficulty: 'Easy to Moderate',
+      points: 20,
+      icon: '🥾'
     }
   ];
 
   // Emergency contacts
   const emergencyContactsData = [
-    { id: 1, name: 'Retreat Leader', phone: '+44 7911 123456', role: 'Emergency Contact' },
-    { id: 2, name: 'Mountain Rescue', phone: '999', role: 'Emergency Services' },
-    { id: 3, name: 'Local Hospital', phone: '+44 17684 82288', role: 'Westmorland Hospital' }
+    { id: 1, name: 'Retreat Leader', phone: '+44 7911 123456', role: 'Emergency Contact', icon: <Phone className="w-4 h-4" /> },
+    { id: 2, name: 'Mountain Rescue', phone: '999', role: 'Emergency Services', icon: <AlertCircle className="w-4 h-4" /> },
+    { id: 3, name: 'Local Hospital', phone: '+44 17684 82288', role: 'Westmorland Hospital', icon: <Shield className="w-4 h-4" /> }
   ];
 
   // Achievements
   const defaultAchievements = [
-    { id: 1, name: 'Early Riser', description: 'Complete morning devotion', icon: '☀️', earned: true, progress: 100 },
-    { id: 2, name: 'Prayer Warrior', description: 'Pray for others', icon: '🙏', earned: true, progress: 100 },
-    { id: 3, name: 'Community Builder', description: 'Share photos or stories', icon: '📸', earned: false, progress: 66 },
-    { id: 4, name: 'Summit Seeker', description: 'Complete hike', icon: '⛰️', earned: false, progress: 45 }
+    { id: 1, name: 'Early Riser', description: 'Complete morning devotion', icon: '☀️', earned: true, progress: 100, points: 10 },
+    { id: 2, name: 'Prayer Warrior', description: 'Pray for others', icon: '🙏', earned: true, progress: 100, points: 15 },
+    { id: 3, name: 'Community Builder', description: 'Share photos or stories', icon: '📸', earned: false, progress: 66, points: 20 },
+    { id: 4, name: 'Summit Seeker', description: 'Complete hike', icon: '⛰️', earned: false, progress: 45, points: 25 },
+    { id: 5, name: 'Explorer', description: 'Check into 3 locations', icon: '📍', earned: false, progress: 33, points: 30 },
+    { id: 6, name: 'Trail Master', description: 'Complete 5km hike', icon: '🥾', earned: false, progress: 60, points: 40 }
+  ];
+
+  // KOMOOT-INSPIRED FEATURES
+  const komootTrails = [
+    { id: 1, name: 'Helvellyn via Striding Edge', distance: '12.5 km', duration: '6-7 hours', difficulty: 'Expert', elevation: '950m', rating: '4.8' },
+    { id: 2, name: 'Aira Force Circular', distance: '4.8 km', duration: '2-3 hours', difficulty: 'Moderate', elevation: '150m', rating: '4.5' },
+    { id: 3, name: 'Ullswater Lakeside', distance: '8.2 km', duration: '3 hours', difficulty: 'Easy', elevation: '50m', rating: '4.3' },
+    { id: 4, name: 'Glenridding Dodd Loop', distance: '2.5 km', duration: '1-2 hours', difficulty: 'Easy', elevation: '80m', rating: '4.0' }
   ];
 
   // ======================
@@ -356,6 +436,10 @@ export default function GreenwichSDARetreatApp() {
     localStorage.setItem('retreatCurrentUser', JSON.stringify(currentUser));
   }, [currentUser]);
 
+  useEffect(() => {
+    localStorage.setItem('retreatCheckedInAttractions', JSON.stringify(checkedInAttractions));
+  }, [checkedInAttractions]);
+
   // Initialize data
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 60000);
@@ -386,6 +470,12 @@ export default function GreenwichSDARetreatApp() {
       });
     }
 
+    // Load checked in attractions
+    const savedCheckIns = localStorage.getItem('retreatCheckedInAttractions');
+    if (savedCheckIns) {
+      setCheckedInAttractions(JSON.parse(savedCheckIns));
+    }
+
     // Set achievements
     setAchievements(defaultAchievements);
 
@@ -404,10 +494,17 @@ export default function GreenwichSDARetreatApp() {
     window.addEventListener('online', updateConnectionStatus);
     window.addEventListener('offline', updateConnectionStatus);
 
+    // Scroll listener for back to top button
+    const handleScroll = () => {
+      setShowBackToTop(window.scrollY > 400);
+    };
+    window.addEventListener('scroll', handleScroll);
+
     return () => {
       clearInterval(timer);
       window.removeEventListener('online', updateConnectionStatus);
       window.removeEventListener('offline', updateConnectionStatus);
+      window.removeEventListener('scroll', handleScroll);
     };
   }, []);
 
@@ -421,6 +518,20 @@ export default function GreenwichSDARetreatApp() {
       return () => clearInterval(weatherInterval);
     }
   }, [currentLocation]);
+
+  // Toggle dark mode effect
+  useEffect(() => {
+    if (darkMode) {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+  }, [darkMode]);
+
+  // Back to top function
+  const scrollToTop = () => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
 
   const getDaySchedule = () => {
     if (currentDay === 'friday') return { day: 'Friday', schedule: schedule.friday, devotional: devotionals.friday };
@@ -621,6 +732,44 @@ export default function GreenwichSDARetreatApp() {
     fetchLiveWeather();
   };
 
+  // Check-in function for attractions
+  const checkIntoAttraction = (attractionId) => {
+    const attraction = attractions.find(a => a.id === attractionId) || locations[attractionId];
+    
+    if (checkedInAttractions[attractionId]) {
+      addNotification(`Already checked into ${attraction.name}!`);
+      return;
+    }
+    
+    setCheckedInAttractions(prev => ({
+      ...prev,
+      [attractionId]: {
+        timestamp: new Date().toISOString(),
+        name: attraction.name
+      }
+    }));
+    
+    // Add points
+    const points = attraction.points || 10;
+    setCurrentUser(prev => ({
+      ...prev,
+      points: prev.points + points,
+      checkIns: prev.checkIns + 1
+    }));
+    
+    // Update achievements
+    setAchievements(prev => 
+      prev.map(a => {
+        if (a.id === 5 && prev.checkIns + 1 >= 3) {
+          return { ...a, progress: 100, earned: true };
+        }
+        return a;
+      })
+    );
+    
+    addNotification(`Checked into ${attraction.name}! +${points} points 🎉`);
+  };
+
   // User stats calculation
   const userStats = {
     prayers: prayerRequests.filter(p => p.author === userName).length,
@@ -628,12 +777,80 @@ export default function GreenwichSDARetreatApp() {
     photos: photos.filter(p => p.author === userName).length,
     totalPrayersReceived: prayerRequests
       .filter(p => p.author === userName)
-      .reduce((total, p) => total + p.prayers, 0)
+      .reduce((total, p) => total + p.prayers, 0),
+    checkIns: Object.keys(checkedInAttractions).length
   };
 
   const currentSchedule = getDaySchedule();
   const currentHour = currentTime.getHours() + (currentTime.getMinutes() / 60);
   const unreadNotifications = notifications.filter(n => !n.read).length;
+
+  // KOMOOT Features Component
+  const KomootFeatures = () => (
+    <div className="mt-6 bg-gradient-to-r from-green-800/40 to-emerald-800/40 rounded-2xl p-5 border border-emerald-700/30">
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="text-lg font-semibold flex items-center gap-2">
+          <Compass className="w-5 h-5 text-emerald-400" />
+          Outdoor Features
+        </h3>
+        <span className="text-xs text-emerald-300">Komoot-inspired</span>
+      </div>
+      
+      <div className="space-y-4">
+        <div className="grid grid-cols-2 gap-3">
+          <div className="bg-slate-800/50 rounded-xl p-4">
+            <div className="flex items-center gap-2 mb-2">
+              <Activity className="w-5 h-5 text-emerald-400" />
+              <span className="font-medium">Distance Covered</span>
+            </div>
+            <div className="text-2xl font-bold">0 km</div>
+            <div className="text-xs text-slate-400">Today's hike</div>
+          </div>
+          
+          <div className="bg-slate-800/50 rounded-xl p-4">
+            <div className="flex items-center gap-2 mb-2">
+              <TrendingUp className="w-5 h-5 text-amber-400" />
+              <span className="font-medium">Elevation Gain</span>
+            </div>
+            <div className="text-2xl font-bold">0 m</div>
+            <div className="text-xs text-slate-400">Total climb</div>
+          </div>
+        </div>
+        
+        <div>
+          <h4 className="text-sm font-semibold mb-3 text-slate-300">Recommended Trails</h4>
+          <div className="space-y-2">
+            {komootTrails.map(trail => (
+              <div key={trail.id} className="bg-slate-800/50 rounded-lg p-3 hover:bg-slate-800/70 transition-colors">
+                <div className="flex justify-between items-start">
+                  <div>
+                    <div className="font-medium">{trail.name}</div>
+                    <div className="flex items-center gap-3 text-xs text-slate-400 mt-1">
+                      <span>{trail.distance}</span>
+                      <span>•</span>
+                      <span>{trail.duration}</span>
+                      <span>•</span>
+                      <span className={`px-2 py-0.5 rounded-full ${
+                        trail.difficulty === 'Expert' ? 'bg-red-500/20 text-red-300' :
+                        trail.difficulty === 'Moderate' ? 'bg-amber-500/20 text-amber-300' :
+                        'bg-emerald-500/20 text-emerald-300'
+                      }`}>
+                        {trail.difficulty}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <Star className="w-3 h-3 text-amber-400 fill-amber-400" />
+                    <span className="text-sm">{trail.rating}</span>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
 
   // Enhanced Weather Component
   const EnhancedWeather = () => (
@@ -759,9 +976,12 @@ export default function GreenwichSDARetreatApp() {
             href={contact.phone ? `tel:${contact.phone}` : '#'}
             className="flex items-center justify-between p-3 bg-red-900/30 rounded-lg hover:bg-red-900/40 transition-colors"
           >
-            <div>
-              <div className="font-medium">{contact.name}</div>
-              <div className="text-sm text-red-300">{contact.role}</div>
+            <div className="flex items-center gap-3">
+              {contact.icon}
+              <div>
+                <div className="font-medium">{contact.name}</div>
+                <div className="text-sm text-red-300">{contact.role}</div>
+              </div>
             </div>
             {contact.phone && (
               <div className="text-red-400 font-mono text-sm">{contact.phone}</div>
@@ -799,6 +1019,19 @@ export default function GreenwichSDARetreatApp() {
         </div>
       </div>
       
+      <div className="mb-4">
+        <div className="flex justify-between text-sm mb-2">
+          <span className="text-slate-300">Location Check-ins</span>
+          <span className="text-emerald-400">{userStats.checkIns}/5</span>
+        </div>
+        <div className="w-full bg-slate-700/50 rounded-full h-2">
+          <div 
+            className="bg-gradient-to-r from-blue-500 to-cyan-500 h-2 rounded-full transition-all duration-500"
+            style={{ width: `${(userStats.checkIns / 5) * 100}%` }}
+          ></div>
+        </div>
+      </div>
+      
       <h4 className="text-sm font-semibold mb-3 text-slate-300">Recent Achievements</h4>
       <div className="grid grid-cols-2 gap-3">
         {achievements.map(achievement => (
@@ -811,6 +1044,7 @@ export default function GreenwichSDARetreatApp() {
               <span className="text-sm font-medium">{achievement.name}</span>
             </div>
             <div className="text-xs text-slate-400">{achievement.description}</div>
+            <div className="text-xs text-emerald-400 mt-1">+{achievement.points} pts</div>
             {!achievement.earned && (
               <div className="mt-2">
                 <div className="w-full bg-slate-700/30 rounded-full h-1">
@@ -827,7 +1061,7 @@ export default function GreenwichSDARetreatApp() {
     </div>
   );
 
-  // System Status Component
+  // System Status Component - FIXED
   const SystemStatus = () => (
     <div className="mt-6 bg-gradient-to-r from-slate-800/40 to-slate-900/40 rounded-2xl p-4 border border-slate-700/30">
       <div className="flex items-center justify-between mb-3">
@@ -840,7 +1074,7 @@ export default function GreenwichSDARetreatApp() {
         </div>
       </div>
       
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-4 gap-3">
         <div className="flex flex-col items-center">
           <div className="relative">
             <Battery className="w-6 h-6 text-slate-400" />
@@ -853,7 +1087,10 @@ export default function GreenwichSDARetreatApp() {
         </div>
         
         <button 
-          onClick={() => setDarkMode(!darkMode)}
+          onClick={() => {
+            setDarkMode(!darkMode);
+            addNotification(`Switched to ${!darkMode ? 'dark' : 'light'} mode`);
+          }}
           className="flex flex-col items-center"
         >
           {darkMode ? (
@@ -868,11 +1105,16 @@ export default function GreenwichSDARetreatApp() {
           <Zap className="w-6 h-6 text-amber-400" />
           <span className="text-xs mt-1">{currentUser.points} pts</span>
         </div>
+        
+        <div className="flex flex-col items-center">
+          <CheckSquare className="w-6 h-6 text-emerald-400" />
+          <span className="text-xs mt-1">{userStats.checkIns}</span>
+        </div>
       </div>
     </div>
   );
 
-  // Quick Actions Component
+  // Quick Actions Component - UPDATED WITH CHECK-IN
   const QuickActions = () => (
     <div className="mt-6 grid grid-cols-4 gap-3">
       <button 
@@ -938,21 +1180,83 @@ export default function GreenwichSDARetreatApp() {
     </div>
   );
 
+  // Check-in Component for Attractions
+  const CheckInComponent = () => (
+    <div className="mt-6 bg-gradient-to-r from-amber-800/40 to-orange-800/40 rounded-2xl p-5 border border-amber-700/30">
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="text-lg font-semibold flex items-center gap-2">
+          <CheckSquare className="w-5 h-5 text-amber-400" />
+          Location Check-ins
+        </h3>
+        <span className="text-xs text-amber-300">{userStats.checkIns} of 5 checked in</span>
+      </div>
+      
+      <div className="space-y-3">
+        {attractions.map(attraction => (
+          <div key={attraction.id} className="flex items-center justify-between p-3 bg-slate-800/50 rounded-lg">
+            <div className="flex items-center gap-3">
+              <span className="text-2xl">{attraction.icon}</span>
+              <div>
+                <div className="font-medium">{attraction.name}</div>
+                <div className="text-xs text-slate-400">{attraction.difficulty} • {attraction.points} pts</div>
+              </div>
+            </div>
+            
+            <button
+              onClick={() => checkIntoAttraction(attraction.id)}
+              disabled={checkedInAttractions[attraction.id]}
+              className={`px-3 py-1 rounded-lg text-sm font-medium transition-all ${
+                checkedInAttractions[attraction.id]
+                  ? 'bg-emerald-500/20 text-emerald-300 cursor-default'
+                  : 'bg-amber-500 hover:bg-amber-600 text-white'
+              }`}
+            >
+              {checkedInAttractions[attraction.id] ? (
+                <div className="flex items-center gap-1">
+                  <CheckCircle className="w-3 h-3" />
+                  <span>Checked In</span>
+                </div>
+              ) : (
+                <div className="flex items-center gap-1">
+                  <CheckSquare className="w-3 h-3" />
+                  <span>Check In</span>
+                </div>
+              )}
+            </button>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-800 text-white">
-      {/* Enhanced Header with Weather */}
+      {/* Enhanced Header with Logo */}
       <div className="bg-gradient-to-r from-emerald-800 to-teal-900 shadow-2xl">
         <div className="max-w-7xl mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-2xl font-bold tracking-tight">Greenwich SDA</h1>
-              <p className="text-emerald-200 text-sm mt-1">Men's Retreat 2026</p>
+            <div className="flex items-center gap-3">
+              {/* Logo */}
+              <a 
+                href="https://photos.app.goo.gl/J672nHZ6qf0Z9kEzt" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="flex items-center gap-2 hover:opacity-90 transition-opacity"
+              >
+                <div className="w-10 h-10 bg-white rounded-lg flex items-center justify-center">
+                  <span className="text-2xl">🌄</span>
+                </div>
+                <div>
+                  <h1 className="text-xl font-bold tracking-tight">Greenwich SDA</h1>
+                  <p className="text-emerald-200 text-xs">Men's Retreat 2026</p>
+                </div>
+              </a>
             </div>
             
             <div className="flex items-center gap-3">
               {/* Weather Display */}
               {liveWeather && (
-                <div className="flex items-center gap-2 bg-white/10 px-3 py-1.5 rounded-full">
+                <div className="hidden sm:flex items-center gap-2 bg-white/10 px-3 py-1.5 rounded-full">
                   {getWeatherIcon(liveWeather.condition)}
                   <div className="flex items-baseline">
                     <span className="text-xl font-bold">{liveWeather.temperature}°</span>
@@ -961,6 +1265,13 @@ export default function GreenwichSDARetreatApp() {
                   {liveWeather.isLiveData && (
                     <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></div>
                   )}
+                </div>
+              )}
+              
+              {/* Mobile Weather Icon */}
+              {liveWeather && (
+                <div className="sm:hidden">
+                  {getWeatherIcon(liveWeather.condition)}
                 </div>
               )}
               
@@ -990,7 +1301,7 @@ export default function GreenwichSDARetreatApp() {
           <div className="mt-4 flex items-center gap-4 text-sm flex-wrap">
             <div className="flex items-center gap-2 bg-emerald-900/40 px-3 py-1.5 rounded-full">
               <MapPin className="w-4 h-4" />
-              <span>Bury Jubilee Centre, Glenridding</span>
+              <span className="truncate max-w-[200px] sm:max-w-none">Bury Jubilee Centre, Glenridding</span>
             </div>
             
             {/* Current Time */}
@@ -1000,7 +1311,7 @@ export default function GreenwichSDARetreatApp() {
             </div>
             
             {/* User Points */}
-            <div className="flex items-center gap-2 bg-emerald-900/40 px-3 py-1.5 rounded-full">
+            <div className="hidden sm:flex items-center gap-2 bg-emerald-900/40 px-3 py-1.5 rounded-full">
               <Zap className="w-4 h-4 text-amber-400" />
               <span>{currentUser.points} pts</span>
             </div>
@@ -1008,38 +1319,57 @@ export default function GreenwichSDARetreatApp() {
         </div>
       </div>
 
-      {/* Navigation Tabs */}
+      {/* Navigation Tabs - Mobile Optimized */}
       <div className="bg-slate-800/50 backdrop-blur-sm border-b border-slate-700 sticky top-0 z-40">
-        <div className="max-w-7xl mx-auto px-4">
-          <div className="flex overflow-x-auto">
+        <div className="max-w-7xl mx-auto px-2 sm:px-4">
+          <div className="flex overflow-x-auto pb-1 hide-scrollbar">
             {[
               { id: 'schedule', icon: Calendar, label: 'Schedule' },
               { id: 'location', icon: Navigation, label: 'Location' },
               { id: 'devotional', icon: Book, label: 'Devotional' },
               { id: 'photos', icon: Camera, label: 'Photos' },
               { id: 'prayer', icon: Heart, label: 'Prayer' },
-              { id: 'testimonials', icon: MessageCircle, label: 'Testimonials' },
+              { id: 'testimonials', icon: MessageCircle, label: 'Stories' },
               { id: 'attractions', icon: Mountain, label: 'Attractions' }
             ].map(tab => (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`flex items-center gap-2 px-6 py-4 border-b-2 transition-all whitespace-nowrap ${
+                className={`flex flex-col items-center gap-1 px-3 py-3 border-b-2 transition-all whitespace-nowrap min-w-[80px] ${
                   activeTab === tab.id
                     ? 'border-emerald-400 text-emerald-400'
                     : 'border-transparent text-slate-400 hover:text-white'
                 }`}
               >
-                <tab.icon className="w-4 h-4" />
-                <span className="font-medium">{tab.label}</span>
+                <tab.icon className="w-4 h-4 sm:w-5 sm:h-5" />
+                <span className="text-xs font-medium">{tab.label}</span>
               </button>
             ))}
           </div>
         </div>
       </div>
 
+      {/* Mobile Status Bar */}
+      <div className="sm:hidden bg-slate-800/30 border-b border-slate-700 py-2 px-4">
+        <div className="flex items-center justify-between text-sm">
+          <div className="flex items-center gap-2">
+            <Zap className="w-3 h-3 text-amber-400" />
+            <span>{currentUser.points} pts</span>
+          </div>
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-1">
+              <CheckSquare className="w-3 h-3 text-emerald-400" />
+              <span>{userStats.checkIns}</span>
+            </div>
+            <div className={`w-2 h-2 rounded-full ${
+              connectionStatus === 'online' ? 'bg-emerald-500' : 'bg-amber-500'
+            }`}></div>
+          </div>
+        </div>
+      </div>
+
       {/* Content */}
-      <div className="max-w-7xl mx-auto px-4 py-8">
+      <div className="max-w-7xl mx-auto px-4 py-6 sm:py-8">
         
         {/* Schedule Tab */}
         {activeTab === 'schedule' && (
@@ -1066,7 +1396,7 @@ export default function GreenwichSDARetreatApp() {
                     }`}
                   >
                     <div className="flex items-start gap-4">
-                      <div className="text-4xl">{item.emoji}</div>
+                      <div className="text-3xl sm:text-4xl">{item.emoji}</div>
                       <div className="flex-1">
                         <div className="flex items-center gap-3 mb-2">
                           <span className="text-emerald-400 font-bold text-lg">{item.time}</span>
@@ -1082,7 +1412,7 @@ export default function GreenwichSDARetreatApp() {
                             <MapPin className="w-4 h-4" />
                             <span>{locations[item.location].name}</span>
                             {currentLocation && (
-                              <span className="ml-2 text-emerald-400">
+                              <span className="ml-2 text-emerald-400 hidden sm:inline">
                                 ~{calculateDistance(
                                   currentLocation.lat,
                                   currentLocation.lng,
@@ -1100,8 +1430,10 @@ export default function GreenwichSDARetreatApp() {
               })}
             </div>
 
-            {/* NEW FEATURES ADDED TO SCHEDULE TAB */}
+            {/* ENHANCED FEATURES */}
             <EnhancedWeather />
+            <CheckInComponent />
+            <KomootFeatures />
             <EmergencyFeatures />
             <ProgressTracker />
             <SystemStatus />
@@ -1144,15 +1476,15 @@ export default function GreenwichSDARetreatApp() {
 
             {/* Simple Map Visualization */}
             <div className="bg-slate-800/70 backdrop-blur rounded-xl border border-slate-700 overflow-hidden">
-              <div className="h-96 bg-gradient-to-br from-slate-900 to-blue-900/50 flex items-center justify-center relative">
+              <div className="h-64 sm:h-96 bg-gradient-to-br from-slate-900 to-blue-900/50 flex items-center justify-center relative">
                 {/* Location Dots */}
                 <div className="absolute inset-0">
                   {/* Base Camp */}
                   <div className="absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2">
-                    <div className="w-12 h-12 bg-emerald-500 rounded-full border-4 border-white shadow-lg flex items-center justify-center animate-pulse">
+                    <div className="w-10 h-10 sm:w-12 sm:h-12 bg-emerald-500 rounded-full border-4 border-white shadow-lg flex items-center justify-center animate-pulse">
                       <span className="text-white text-lg">🏠</span>
                     </div>
-                    <div className="mt-2 text-center">
+                    <div className="mt-2 text-center hidden sm:block">
                       <p className="text-white font-bold text-sm">Base Camp</p>
                       <p className="text-emerald-300 text-xs">Bury Jubilee Centre</p>
                     </div>
@@ -1160,21 +1492,21 @@ export default function GreenwichSDARetreatApp() {
                   
                   {/* Helvellyn */}
                   <div className="absolute left-1/4 top-1/4">
-                    <div className="w-10 h-10 bg-amber-500 rounded-full border-3 border-white shadow-lg flex items-center justify-center">
+                    <div className="w-8 h-8 sm:w-10 sm:h-10 bg-amber-500 rounded-full border-3 border-white shadow-lg flex items-center justify-center">
                       <span className="text-white">⛰️</span>
                     </div>
                   </div>
                   
                   {/* Aira Force */}
                   <div className="absolute left-3/4 top-1/3">
-                    <div className="w-10 h-10 bg-blue-500 rounded-full border-3 border-white shadow-lg flex items-center justify-center">
+                    <div className="w-8 h-8 sm:w-10 sm:h-10 bg-blue-500 rounded-full border-3 border-white shadow-lg flex items-center justify-center">
                       <span className="text-white">💧</span>
                     </div>
                   </div>
                   
                   {/* Ullswater */}
                   <div className="absolute left-2/3 top-2/3">
-                    <div className="w-10 h-10 bg-indigo-500 rounded-full border-3 border-white shadow-lg flex items-center justify-center">
+                    <div className="w-8 h-8 sm:w-10 sm:h-10 bg-indigo-500 rounded-full border-3 border-white shadow-lg flex items-center justify-center">
                       <span className="text-white">🛥️</span>
                     </div>
                   </div>
@@ -1185,44 +1517,25 @@ export default function GreenwichSDARetreatApp() {
                       left: `${50 + (currentLocation.lng - (-2.9620)) * 100}%`,
                       top: `${50 - (currentLocation.lat - 54.5262) * 100}%`
                     }}>
-                      <div className="w-8 h-8 bg-red-500 rounded-full border-3 border-white shadow-lg flex items-center justify-center animate-bounce">
+                      <div className="w-6 h-6 sm:w-8 sm:h-8 bg-red-500 rounded-full border-3 border-white shadow-lg flex items-center justify-center animate-bounce">
                         <span className="text-white text-xs">📍</span>
                       </div>
                     </div>
                   )}
                 </div>
                 
-                {/* Connection Lines */}
-                <svg className="absolute inset-0 w-full h-full">
-                  <line x1="50%" y1="50%" x2="25%" y2="25%" stroke="#f59e0b" strokeWidth="2" strokeDasharray="5,5" />
-                  <line x1="50%" y1="50%" x2="75%" y2="33%" stroke="#0ea5e9" strokeWidth="2" strokeDasharray="5,5" />
-                  <line x1="50%" y1="50%" x2="67%" y2="67%" stroke="#8b5cf6" strokeWidth="2" strokeDasharray="5,5" />
-                </svg>
-                
                 {/* Legend */}
-                <div className="absolute bottom-4 left-4 bg-slate-900/80 backdrop-blur rounded-lg p-3 border border-slate-700">
+                <div className="absolute bottom-4 left-4 bg-slate-900/80 backdrop-blur rounded-lg p-3 border border-slate-700 max-w-[180px]">
                   <p className="text-sm font-semibold mb-2">Legend</p>
                   <div className="space-y-1 text-xs">
                     <div className="flex items-center gap-2">
-                      <div className="w-3 h-3 bg-emerald-500 rounded-full"></div>
-                      <span>Base Camp</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <div className="w-3 h-3 bg-amber-500 rounded-full"></div>
-                      <span>Helvellyn</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
-                      <span>Aira Force</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <div className="w-3 h-3 bg-indigo-500 rounded-full"></div>
-                      <span>Ullswater</span>
+                      <div className="w-2 h-2 sm:w-3 sm:h-3 bg-emerald-500 rounded-full"></div>
+                      <span className="truncate">Base Camp</span>
                     </div>
                     {currentLocation && (
                       <div className="flex items-center gap-2">
-                        <div className="w-3 h-3 bg-red-500 rounded-full animate-pulse"></div>
-                        <span>Your Location</span>
+                        <div className="w-2 h-2 sm:w-3 sm:h-3 bg-red-500 rounded-full animate-pulse"></div>
+                        <span className="truncate">Your Location</span>
                       </div>
                     )}
                   </div>
@@ -1241,11 +1554,11 @@ export default function GreenwichSDARetreatApp() {
                   <div className="grid grid-cols-2 gap-4">
                     <div className="bg-slate-700/50 rounded-lg p-3">
                       <p className="text-xs text-slate-400 mb-1">Latitude</p>
-                      <p className="text-slate-300 font-mono">{currentLocation.lat.toFixed(6)}°</p>
+                      <p className="text-slate-300 font-mono text-sm sm:text-base">{currentLocation.lat.toFixed(6)}°</p>
                     </div>
                     <div className="bg-slate-700/50 rounded-lg p-3">
                       <p className="text-xs text-slate-400 mb-1">Longitude</p>
-                      <p className="text-slate-300 font-mono">{currentLocation.lng.toFixed(6)}°</p>
+                      <p className="text-slate-300 font-mono text-sm sm:text-base">{currentLocation.lng.toFixed(6)}°</p>
                     </div>
                   </div>
                   <p className="text-sm text-emerald-400">
@@ -1292,7 +1605,7 @@ export default function GreenwichSDARetreatApp() {
                       <div className={`w-3 h-3 rounded-full ${loc.color}`} />
                       <div>
                         <p className="font-medium">{loc.name}</p>
-                        <p className="text-xs text-slate-400">
+                        <p className="text-xs text-slate-400 hidden sm:block">
                           {loc.lat.toFixed(4)}°, {loc.lng.toFixed(4)}°
                         </p>
                       </div>
@@ -1302,7 +1615,7 @@ export default function GreenwichSDARetreatApp() {
                         <span className="text-emerald-400 text-sm font-medium">
                           {calculateDistance(currentLocation.lat, currentLocation.lng, loc.lat, loc.lng)} km
                         </span>
-                        <p className="text-xs text-slate-500">straight line</p>
+                        <p className="text-xs text-slate-500 hidden sm:block">straight line</p>
                       </div>
                     ) : (
                       <span className="text-slate-500 text-sm">-- km</span>
@@ -1323,7 +1636,7 @@ export default function GreenwichSDARetreatApp() {
             </div>
 
             {/* Today's Devotional */}
-            <div className="bg-slate-800/70 backdrop-blur rounded-xl p-8 border border-slate-700">
+            <div className="bg-slate-800/70 backdrop-blur rounded-xl p-6 sm:p-8 border border-slate-700">
               <div className="flex items-center gap-3 mb-6">
                 <Book className="w-8 h-8 text-purple-400" />
                 <div>
@@ -1388,10 +1701,10 @@ export default function GreenwichSDARetreatApp() {
 
             {/* Photo Grid */}
             {photos.length > 0 ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
                 {photos.map((photo) => (
                   <div key={photo.id} className="bg-slate-800/70 backdrop-blur rounded-xl overflow-hidden border border-slate-700 hover:border-pink-500 transition-all">
-                    <img src={photo.src} alt="Retreat" className="w-full h-64 object-cover" />
+                    <img src={photo.src} alt="Retreat" className="w-full h-48 sm:h-64 object-cover" />
                     <div className="p-4">
                       <div className="flex justify-between items-start mb-2">
                         <div>
@@ -1399,8 +1712,7 @@ export default function GreenwichSDARetreatApp() {
                           <p className="text-xs text-slate-400">
                             {new Date(photo.timestamp).toLocaleDateString('en-GB', { 
                               day: 'numeric', 
-                              month: 'long', 
-                              year: 'numeric',
+                              month: 'short',
                               hour: '2-digit',
                               minute: '2-digit'
                             })}
@@ -1438,7 +1750,7 @@ export default function GreenwichSDARetreatApp() {
                       
                       {/* Comments Section */}
                       <div className="space-y-2">
-                        {photo.comments && photo.comments.map((comment) => (
+                        {photo.comments && photo.comments.slice(-2).map((comment) => (
                           <div key={comment.id} className="text-xs bg-slate-700/30 rounded p-2">
                             <div className="flex justify-between">
                               <span className="font-medium text-pink-200">{comment.author}</span>
@@ -1449,7 +1761,7 @@ export default function GreenwichSDARetreatApp() {
                                 })}
                               </span>
                             </div>
-                            <p className="text-slate-300 mt-1">{comment.text}</p>
+                            <p className="text-slate-300 mt-1 truncate">{comment.text}</p>
                           </div>
                         ))}
                         
@@ -1525,7 +1837,7 @@ export default function GreenwichSDARetreatApp() {
             {/* Prayer List */}
             <div className="space-y-4">
               {prayerRequests.length > 0 ? (
-                prayerRequests.map((request) => (
+                prayerRequests.slice(0, 10).map((request) => (
                   <div key={request.id} className="bg-slate-800/70 backdrop-blur rounded-xl p-6 border border-slate-700 hover:border-amber-500/50 transition-colors">
                     <div className="flex items-start gap-4">
                       <Heart className="w-6 h-6 text-amber-400 flex-shrink-0 mt-1" />
@@ -1542,17 +1854,6 @@ export default function GreenwichSDARetreatApp() {
                                 minute: '2-digit'
                               })}
                             </span>
-                            {request.userLocation && (
-                              <span className="text-xs text-slate-400 flex items-center gap-1">
-                                <MapPin className="w-3 h-3" />
-                                {calculateDistance(
-                                  request.userLocation.lat,
-                                  request.userLocation.lng,
-                                  baseLocation.lat,
-                                  baseLocation.lng
-                                )} km from base
-                              </span>
-                            )}
                           </div>
                           <div className="flex items-center gap-3">
                             <button
@@ -1560,7 +1861,7 @@ export default function GreenwichSDARetreatApp() {
                               className="flex items-center gap-1 text-amber-400 hover:text-amber-300 transition-colors"
                             >
                               <Heart className={`w-4 h-4 ${request.prayers > 0 ? 'fill-amber-400' : ''}`} />
-                              <span>{request.prayers} prayed</span>
+                              <span>{request.prayers}</span>
                             </button>
                             {userName === request.author && (
                               <button
@@ -1590,13 +1891,13 @@ export default function GreenwichSDARetreatApp() {
         {activeTab === 'testimonials' && (
           <div className="space-y-6">
             <div className="bg-gradient-to-r from-teal-600 to-cyan-600 rounded-2xl p-6 shadow-xl">
-              <h2 className="text-2xl font-bold mb-2">Testimonials</h2>
+              <h2 className="text-2xl font-bold mb-2">Stories & Testimonials</h2>
               <p className="text-teal-100">Share how God is working in your life</p>
             </div>
 
             {/* Submit Testimonial */}
             <div className="bg-slate-800/70 backdrop-blur rounded-xl p-6 border border-slate-700">
-              <h3 className="text-lg font-semibold mb-4">Share Your Testimony</h3>
+              <h3 className="text-lg font-semibold mb-4">Share Your Story</h3>
               <textarea
                 value={testimonialText}
                 onChange={(e) => setTestimonialText(e.target.value)}
@@ -1613,7 +1914,7 @@ export default function GreenwichSDARetreatApp() {
                   }}
                   className="bg-gradient-to-r from-teal-600 to-cyan-600 hover:from-teal-500 hover:to-cyan-500 px-6 py-3 rounded-lg font-semibold transition-all"
                 >
-                  Share Testimony
+                  Share Story
                 </button>
                 <div className="text-sm text-slate-400">
                   {userName ? `Posting as: ${userName}` : 'Set your name in profile'}
@@ -1624,7 +1925,7 @@ export default function GreenwichSDARetreatApp() {
             {/* Testimonial List */}
             <div className="space-y-4">
               {testimonials.length > 0 ? (
-                testimonials.map((testimony) => (
+                testimonials.slice(0, 10).map((testimony) => (
                   <div key={testimony.id} className="bg-slate-800/70 backdrop-blur rounded-xl p-6 border border-slate-700 hover:border-teal-500/50 transition-colors">
                     <div className="flex items-start gap-4">
                       <Users className="w-6 h-6 text-teal-400 flex-shrink-0 mt-1" />
@@ -1636,7 +1937,7 @@ export default function GreenwichSDARetreatApp() {
                             <span className="text-slate-500">
                               {new Date(testimony.timestamp).toLocaleDateString('en-GB', { 
                                 day: 'numeric', 
-                                month: 'long',
+                                month: 'short',
                                 hour: '2-digit',
                                 minute: '2-digit'
                               })}
@@ -1667,7 +1968,7 @@ export default function GreenwichSDARetreatApp() {
               ) : (
                 <div className="bg-slate-800/70 backdrop-blur rounded-xl p-12 border border-slate-700 text-center">
                   <MessageCircle className="w-16 h-16 mx-auto mb-4 text-slate-600" />
-                  <p className="text-slate-400">No testimonials yet. Share how God is working!</p>
+                  <p className="text-slate-400">No stories yet. Share how God is working!</p>
                 </div>
               )}
             </div>
@@ -1682,15 +1983,28 @@ export default function GreenwichSDARetreatApp() {
               <p className="text-indigo-100">Explore the beauty of the Lake District</p>
             </div>
 
-            <div className="grid gap-6">
-              {attractions.map((attraction, idx) => (
-                <div key={idx} className="bg-slate-800/70 backdrop-blur rounded-xl p-6 border border-slate-700 hover:border-indigo-500 transition-all">
+            <div className="grid gap-4 sm:gap-6">
+              {attractions.map((attraction) => (
+                <div key={attraction.id} className="bg-slate-800/70 backdrop-blur rounded-xl p-6 border border-slate-700 hover:border-indigo-500 transition-all">
                   <div className="flex items-start gap-4">
-                    <Mountain className="w-8 h-8 text-indigo-400 flex-shrink-0" />
+                    <span className="text-3xl">{attraction.icon}</span>
                     <div className="flex-1">
-                      <h3 className="text-xl font-bold mb-2">{attraction.name}</h3>
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-3">
+                        <h3 className="text-xl font-bold">{attraction.name}</h3>
+                        <button
+                          onClick={() => checkIntoAttraction(attraction.id)}
+                          disabled={checkedInAttractions[attraction.id]}
+                          className={`mt-2 sm:mt-0 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                            checkedInAttractions[attraction.id]
+                              ? 'bg-emerald-500/20 text-emerald-300 cursor-default'
+                              : 'bg-indigo-500 hover:bg-indigo-600 text-white'
+                          }`}
+                        >
+                          {checkedInAttractions[attraction.id] ? '✓ Checked In' : 'Check In'}
+                        </button>
+                      </div>
                       <p className="text-slate-300 mb-4">{attraction.description}</p>
-                      <div className="grid grid-cols-3 gap-4">
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                         <div>
                           <p className="text-xs text-slate-500 mb-1">Distance</p>
                           <p className="text-indigo-400 font-semibold">{attraction.distance}</p>
@@ -1703,15 +2017,35 @@ export default function GreenwichSDARetreatApp() {
                           <p className="text-xs text-slate-500 mb-1">Difficulty</p>
                           <p className="text-indigo-400 font-semibold">{attraction.difficulty}</p>
                         </div>
+                        <div>
+                          <p className="text-xs text-slate-500 mb-1">Points</p>
+                          <p className="text-amber-400 font-semibold">+{attraction.points}</p>
+                        </div>
                       </div>
                     </div>
                   </div>
                 </div>
               ))}
             </div>
+
+            {/* KOMOOT Features in Attractions Tab */}
+            <KomootFeatures />
+            
+            {/* Emergency Features */}
+            <EmergencyFeatures />
           </div>
         )}
       </div>
+
+      {/* Back to Top Button */}
+      {showBackToTop && (
+        <button
+          onClick={scrollToTop}
+          className="fixed bottom-6 right-6 z-50 w-12 h-12 bg-emerald-600 rounded-full shadow-lg flex items-center justify-center hover:bg-emerald-700 transition-all"
+        >
+          <ChevronUp className="w-6 h-6" />
+        </button>
+      )}
 
       {/* Notifications Panel */}
       {showNotifications && (
@@ -1817,8 +2151,8 @@ export default function GreenwichSDARetreatApp() {
                   <div className="text-sm">Prayers</div>
                 </div>
                 <div className="bg-slate-700/30 rounded-lg p-3 text-center">
-                  <div className="text-2xl font-bold text-cyan-400">{userStats.testimonials}</div>
-                  <div className="text-sm">Stories</div>
+                  <div className="text-2xl font-bold text-cyan-400">{userStats.checkIns}</div>
+                  <div className="text-sm">Check-ins</div>
                 </div>
               </div>
               
@@ -1851,14 +2185,44 @@ export default function GreenwichSDARetreatApp() {
       {/* Footer */}
       <div className="bg-slate-900 border-t border-slate-800 mt-12 py-8">
         <div className="max-w-7xl mx-auto px-4 text-center text-slate-400">
-          <p className="mb-2">Greenwich SDA Men's Ministry</p>
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-4">
+            <a 
+              href="https://photos.app.goo.gl/J672nHZ6qf0Z9kEzt" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="flex items-center gap-2 hover:text-emerald-300 transition-colors"
+            >
+              <div className="w-8 h-8 bg-emerald-600 rounded flex items-center justify-center">
+                <span className="text-lg">🌄</span>
+              </div>
+              <span>Greenwich SDA Men's Ministry</span>
+            </a>
+          </div>
           <p className="text-sm">Bury Jubilee Outdoor Pursuits Centre, Glenridding, Cumbria CA11 0QR</p>
           <p className="text-sm mt-4 italic">"Be strong and courageous. Do not be afraid." - Joshua 1:9</p>
           <p className="text-xs text-slate-500 mt-4">
             All data is stored locally in your browser. Clear browser data to reset.
           </p>
+          <button 
+            onClick={scrollToTop}
+            className="mt-6 text-sm text-emerald-400 hover:text-emerald-300 flex items-center justify-center gap-2 mx-auto"
+          >
+            <ArrowUp className="w-4 h-4" />
+            Back to Top
+          </button>
         </div>
       </div>
+
+      {/* Add CSS for hide scrollbar */}
+      <style jsx>{`
+        .hide-scrollbar {
+          -ms-overflow-style: none;
+          scrollbar-width: none;
+        }
+        .hide-scrollbar::-webkit-scrollbar {
+          display: none;
+        }
+      `}</style>
     </div>
   );
 }
