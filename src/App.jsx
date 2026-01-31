@@ -207,15 +207,44 @@ export default function GreenwichSDARetreatApp() {
 // ======================
 
 const fetchLiveWeather = async () => {
-  // Access the API key from Vercel's environment variables
   const apiKey = process.env.OPENWEATHER_API_KEY;
   
   if (!apiKey) {
-    console.error('OpenWeather API key is not configured.');
-    addNotification('Weather service is not configured.');
-    setLiveWeather(getMockWeatherData()); // Fallback to mock
+    console.error('API key missing - check Vercel environment variables');
+    setLiveWeather(getMockWeatherData());
     return;
   }
+  
+  // Always use current location if available
+  const targetLat = currentLocation?.lat || baseLocation.lat;
+  const targetLng = currentLocation?.lng || baseLocation.lng;
+  
+  setWeatherLoading(true);
+  
+  try {
+    // Your existing API call code...
+    const response = await fetch(`https://api...`);
+    
+    if (response.status === 401) {
+      console.error('❌ Invalid API key - check your OpenWeather API key');
+      throw new Error('Invalid API key');
+    }
+    
+    // Process and set live weather...
+    
+  } catch (error) {
+    console.error('Weather fetch failed:', error.message);
+    // Fallback to base camp weather, not mock
+    const fallbackWeather = await fetchWeatherForCoordinates(
+      baseLocation.lat, 
+      baseLocation.lng
+    );
+    setLiveWeather(fallbackWeather);
+    addNotification('Using retreat location weather');
+  } finally {
+    setWeatherLoading(false);
+  }
+};
 
   // Use current location, or fallback to retreat base camp
   const targetLat = currentLocation ? currentLocation.lat : baseLocation.lat;
@@ -367,7 +396,25 @@ const getMockWeatherData = () => ({
         (error) => console.log('Location access denied')
       );
     }
-
+// Add this useEffect AFTER your existing initialization useEffect
+useEffect(() => {
+  const initializeWeather = async () => {
+    if (currentLocation) {
+      // User granted location - fetch their exact weather
+      await fetchLiveWeather();
+    } else {
+      // No user location - fetch weather for retreat base instead of mock
+      const baseWeather = await fetchWeatherForCoordinates(
+        baseLocation.lat, 
+        baseLocation.lng, 
+        'Lake District Retreat'
+      );
+      setLiveWeather(baseWeather);
+    }
+  };
+  
+  initializeWeather();
+}, [currentLocation]); // ✅ Runs when location changes
     // Inside your main useEffect, replace the weather setup:
 // Find this line (or similar):
 // setLiveWeather(getMockWeatherData());
