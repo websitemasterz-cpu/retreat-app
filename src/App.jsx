@@ -202,26 +202,130 @@ export default function GreenwichSDARetreatApp() {
     { id: 4, name: 'Summit Seeker', description: 'Complete hike', icon: '⛰️', earned: false, progress: 45 }
   ];
 
-  // Mock weather data
-  const getMockWeatherData = () => ({
-    temperature: 18,
-    feelsLike: 16,
-    condition: 'Partly Cloudy',
-    humidity: 65,
-    windSpeed: 12,
-    pressure: 1013,
-    sunrise: '06:45',
-    sunset: '20:15',
-    icon: '⛅',
-    forecast: [
-      { day: 'Today', high: 18, low: 12, icon: '⛅', condition: 'Partly Cloudy' },
-      { day: 'Sat', high: 16, low: 11, icon: '🌧️', condition: 'Light Rain' },
-      { day: 'Sun', high: 14, low: 9, icon: '☁️', condition: 'Cloudy' },
-      { day: 'Mon', high: 17, low: 12, icon: '☀️', condition: 'Sunny' }
-    ],
-    lastUpdated: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}),
-    city: 'Lake District'
+  // ======================
+// REAL WEATHER FUNCTIONS
+// ======================
+
+const fetchLiveWeather = async () => {
+  // Access the API key from Vercel's environment variables
+  const apiKey = process.env.OPENWEATHER_API_KEY;
+  
+  if (!apiKey) {
+    console.error('OpenWeather API key is not configured.');
+    addNotification('Weather service is not configured.');
+    setLiveWeather(getMockWeatherData()); // Fallback to mock
+    return;
+  }
+
+  // Use current location, or fallback to retreat base camp
+  const targetLat = currentLocation ? currentLocation.lat : baseLocation.lat;
+  const targetLng = currentLocation ? currentLocation.lng : baseLocation.lng;
+
+  setWeatherLoading(true);
+  setIsRefreshing(true);
+
+  try {
+    // Fetch CURRENT weather
+    const currentResponse = await fetch(
+      `https://api.openweathermap.org/data/2.5/weather?lat=${targetLat}&lon=${targetLng}&units=metric&appid=${apiKey}`
+    );
+    
+    if (!currentResponse.ok) throw new Error(`Weather API error: ${currentResponse.status}`);
+    
+    const currentData = await currentResponse.json();
+    
+    // Fetch 5-DAY FORECAST in parallel for better performance
+    const forecastResponse = await fetch(
+      `https://api.openweathermap.org/data/2.5/forecast?lat=${targetLat}&lon=${targetLng}&units=metric&appid=${apiKey}`
+    );
+    const forecastData = await forecastResponse.json();
+
+    // Process the combined data
+    const processedWeather = {
+      temperature: Math.round(currentData.main.temp),
+      feelsLike: Math.round(currentData.main.feels_like),
+      condition: currentData.weather[0].description,
+      humidity: currentData.main.humidity,
+      windSpeed: Math.round(currentData.wind.speed * 3.6), // Convert m/s to km/h
+      pressure: currentData.main.pressure,
+      sunrise: new Date(currentData.sys.sunrise * 1000).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}),
+      sunset: new Date(currentData.sys.sunset * 1000).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}),
+      icon: getLiveWeatherIcon(currentData.weather[0].id),
+      city: currentData.name,
+      lastUpdated: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}),
+      forecast: processForecastData(forecastData),
+      isLiveData: true // Flag to show this is real data
+    };
+    
+    setLiveWeather(processedWeather);
+    addNotification('Live weather updated! 🌤️');
+    
+  } catch (error) {
+    console.error('Error fetching live weather:', error);
+    addNotification('Using sample weather data');
+    // Fallback to mock data on any error
+    setLiveWeather(getMockWeatherData());
+  } finally {
+    setWeatherLoading(false);
+    setIsRefreshing(false);
+  }
+};
+
+// Helper: Map OpenWeather icon codes to emojis
+const getLiveWeatherIcon = (weatherCode) => {
+  if (weatherCode >= 200 && weatherCode < 300) return '⛈️';
+  if (weatherCode >= 300 && weatherCode < 400) return '🌧️';
+  if (weatherCode >= 500 && weatherCode < 600) return '🌧️';
+  if (weatherCode >= 600 && code < 700) return '❄️';
+  if (weatherCode === 800) return '☀️';
+  if (weatherCode > 800) return '☁️';
+  return '⛅';
+};
+
+// Helper: Process 5-day forecast data from API
+const processForecastData = (forecastData) => {
+  const dailyForecasts = {};
+  
+  forecastData.list.forEach(item => {
+    const date = new Date(item.dt * 1000).toLocaleDateString('en-US', { weekday: 'short' });
+    if (!dailyForecasts[date]) {
+      dailyForecasts[date] = {
+        day: date,
+        high: Math.round(item.main.temp_max),
+        low: Math.round(item.main.temp_min),
+        icon: getLiveWeatherIcon(item.weather[0].id),
+        condition: item.weather[0].description
+      };
+    } else {
+      dailyForecasts[date].high = Math.max(dailyForecasts[date].high, Math.round(item.main.temp_max));
+      dailyForecasts[date].low = Math.min(dailyForecasts[date].low, Math.round(item.main.temp_min));
+    }
   });
+  
+  return Object.values(dailyForecasts).slice(0, 4);
+};
+
+// Keep mock data as a fallback
+const getMockWeatherData = () => ({
+  temperature: 18,
+  feelsLike: 16,
+  condition: 'Partly Cloudy',
+  humidity: 65,
+  windSpeed: 12,
+  pressure: 1013,
+  sunrise: '06:45',
+  sunset: '20:15',
+  icon: '⛅',
+  forecast: [
+    { day: 'Today', high: 18, low: 12, icon: '⛅', condition: 'Partly Cloudy' },
+    { day: 'Sat', high: 16, low: 11, icon: '🌧️', condition: 'Light Rain' },
+    { day: 'Sun', high: 14, low: 9, icon: '☁️', condition: 'Cloudy' },
+    { day: 'Mon', high: 17, low: 12, icon: '☀️', condition: 'Sunny' }
+  ],
+  lastUpdated: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}),
+  city: 'Lake District',
+  isLiveData: false // Flag to show this is mock data
+});
 
   // Save to localStorage whenever data changes
   useEffect(() => {
@@ -264,8 +368,18 @@ export default function GreenwichSDARetreatApp() {
       );
     }
 
-    // Set mock weather data
-    setLiveWeather(getMockWeatherData());
+    // Inside your main useEffect, replace the weather setup:
+// Find this line (or similar):
+// setLiveWeather(getMockWeatherData());
+
+// Replace with this smarter initialization:
+if (currentLocation) {
+  // We have location, fetch real weather
+  fetchLiveWeather();
+} else {
+  // No location yet, use mock data for initial display
+  setLiveWeather(getMockWeatherData());
+}
     
     // Set achievements
     setAchievements(defaultAchievements);
@@ -486,15 +600,10 @@ export default function GreenwichSDARetreatApp() {
     return <Cloud className="w-5 h-5 text-slate-300" />;
   };
 
-  // Refresh weather
-  const refreshWeather = () => {
-    setIsRefreshing(true);
-    setTimeout(() => {
-      setLiveWeather(getMockWeatherData());
-      addNotification('Weather refreshed 🌤️');
-      setIsRefreshing(false);
-    }, 1000);
-  };
+ // Replace your current refreshWeather function with:
+const refreshWeather = () => {
+  fetchLiveWeather();
+};
 
   // User stats calculation
   const userStats = {
@@ -603,6 +712,15 @@ export default function GreenwichSDARetreatApp() {
         </>
       )}
     </div>
+    <div className="text-sm text-slate-300 capitalize">{liveWeather.condition}</div>
+<div className="text-xs text-sky-300 mt-1">
+  {liveWeather.city} 
+  {liveWeather.isLiveData && (
+    <span className="ml-2 text-xs bg-emerald-500/20 text-emerald-300 px-2 py-0.5 rounded-full">
+      Live
+    </span>
+  )}
+</div>
   );
 
   // Emergency Features Component
