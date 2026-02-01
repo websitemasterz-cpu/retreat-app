@@ -1,4 +1,4 @@
-// src/App.jsx - WITH IMPROVED PROGRESS SECTION AND FIXED ISSUES
+// src/App.jsx - COMPLETE FIXED VERSION
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { 
   Calendar, MapPin, Camera, Heart, Book, Users, Mountain, MessageCircle, 
@@ -1786,58 +1786,7 @@ export default function GreenwichSDARetreatApp() {
     </div>
   );
 
-  // System Status Component
-  const SystemStatus = () => (
-    <div className="mt-6 bg-gradient-to-r from-slate-800/40 to-slate-900/40 rounded-2xl p-4 border border-slate-700/30">
-      <div className="flex items-center justify-between mb-3">
-        <h4 className="text-sm font-semibold text-slate-300">System Status</h4>
-        <div className="flex items-center gap-2">
-          <div className={`w-2 h-2 rounded-full ${
-            connectionStatus === 'online' ? 'bg-emerald-500' : 'bg-amber-500'
-          }`}></div>
-          <span className="text-xs">{connectionStatus}</span>
-        </div>
-      </div>
-      
-      <div className="grid grid-cols-4 gap-3">
-        <div className="flex flex-col items-center">
-          <div className="relative">
-            <Battery className="w-6 h-6 text-slate-400" />
-            <div 
-              className="absolute top-1 left-1 h-4 bg-emerald-500 rounded-sm"
-              style={{ width: `${batteryLevel * 0.16}px` }}
-            ></div>
-          </div>
-          <span className="text-xs mt-1">{batteryLevel}%</span>
-        </div>
-        
-        <button 
-          onClick={() => {
-            setDarkMode(!darkMode);
-            addNotification(`Switched to ${!darkMode ? 'dark' : 'light'} mode`);
-          }}
-          className="flex flex-col items-center"
-        >
-          {darkMode ? (
-            <Moon className="w-6 h-6 text-blue-400" />
-          ) : (
-            <Sun className="w-6 h-6 text-amber-400" />
-          )}
-          <span className="text-xs mt-1">{darkMode ? 'Dark' : 'Light'}</span>
-        </button>
-        
-        <div className="flex flex-col items-center">
-          <Zap className="w-6 h-6 text-amber-400" />
-          <span className="text-xs mt-1">{currentUser.points} pts</span>
-        </div>
-        
-        <div className="flex flex-col items-center">
-          <TrailIcon className="w-6 h-6 text-emerald-400" />
-          <span className="text-xs mt-1">{hikedTrails.length}</span>
-        </div>
-      </div>
-    </div>
-  );
+  // REMOVED System Status Component
 
   // Quick Actions Component
   const QuickActions = () => (
@@ -2007,7 +1956,7 @@ export default function GreenwichSDARetreatApp() {
                   <Mountain className="w-6 h-6 text-white" />
                 </div>
                 <div>
-                  <h1 className="text-xl font-bold tracking-tight">Greenwich SDA Church</h1>
+                  <h1 className="text-xl font-bold tracking-tight">Greenwich SDA</h1>
                   <p className="text-emerald-200 text-xs">Men's Retreat 2026</p>
                 </div>
               </a>
@@ -2132,116 +2081,79 @@ export default function GreenwichSDARetreatApp() {
       {/* Content */}
       <div className="max-w-7xl mx-auto px-4 py-6 sm:py-8">
         
-       // Updated Schedule Tab section:
+        {/* Schedule Tab */}
+        {activeTab === 'schedule' && (
+          <div className="space-y-6">
+            <div className="bg-gradient-to-r from-blue-600 to-teal-600 rounded-2xl p-6 shadow-xl">
+              <h2 className="text-2xl font-bold mb-2">{currentSchedule.day}'s Schedule</h2>
+              <p className="text-blue-100">21-24 August 2026</p>
+            </div>
 
-{/* Schedule Tab */}
-{activeTab === 'schedule' && (
-  <div className="space-y-6">
-    <div className="bg-gradient-to-r from-blue-600 to-teal-600 rounded-2xl p-6 shadow-xl">
-      <h2 className="text-2xl font-bold mb-2">{currentSchedule.day}'s Schedule</h2>
-      <p className="text-blue-100">21-24 August 2026</p>
-    </div>
-
-    {/* Quick Day Selector - MOVED TO TOP */}
-    <div className="bg-slate-800/70 backdrop-blur rounded-xl p-6 border border-slate-700">
-      <h3 className="text-lg font-semibold mb-4">View Other Days</h3>
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        {[
-          { name: 'Friday', key: 'friday', date: new Date(2026, 7, 21) },
-          { name: 'Saturday', key: 'saturday', date: new Date(2026, 7, 22) },
-          { name: 'Sunday', key: 'sunday', date: new Date(2026, 7, 23) },
-          { name: 'Monday', key: 'monday', date: new Date(2026, 7, 24) }
-        ].map(({ name, key }) => (
-          <button
-            key={key}
-            onClick={() => setCurrentDay(key)}
-            className={`transition-all rounded-lg py-3 px-4 font-medium ${
-              currentDay === key
-                ? 'bg-emerald-600'
-                : 'bg-slate-700/50 hover:bg-emerald-600'
-            }`}
-          >
-            {name}
-          </button>
-        ))}
-      </div>
-    </div>
-
-    <div className="bg-slate-800/70 backdrop-blur rounded-xl p-6 border border-slate-700">
-      <h3 className="text-lg font-semibold mb-4">Today's Activities</h3>
-      <div className="space-y-3">
-        {currentSchedule.schedule.map((item, index) => {
-          const itemTime = parseFloat(item.time.replace(':', '.'));
-          const isPast = itemTime < currentHour;
-          const isCurrent = itemTime <= currentHour && currentHour < itemTime + 0.5;
-          
-          return (
-            <div 
-              key={index}
-              className={`p-4 rounded-lg transition-all ${
-                isCurrent 
-                  ? 'bg-emerald-900/30 border-l-4 border-emerald-400' 
-                  : isPast 
-                    ? 'bg-slate-700/30' 
-                    : 'bg-slate-800/50'
-              }`}
-            >
-              <div className="flex items-start gap-4">
-                <div className="text-center">
-                  <div className="text-lg font-bold">{item.time}</div>
-                  <div className="text-xs text-slate-400 mt-1">{isCurrent ? 'NOW' : isPast ? 'Done' : 'Upcoming'}</div>
-                </div>
-                <div className="flex-1">
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="text-xl">{item.emoji}</span>
-                    <h4 className="font-semibold">{item.activity}</h4>
-                  </div>
-                  <div className="flex items-center gap-2 text-sm text-slate-400">
-                    <MapPin className="w-3 h-3" />
-                    <span>{item.location === 'base' ? 'Bury Jubilee Centre' : item.location}</span>
-                  </div>
-                </div>
+            {/* Quick Day Selector - MOVED TO TOP */}
+            <div className="bg-slate-800/70 backdrop-blur rounded-xl p-6 border border-slate-700">
+              <h3 className="text-lg font-semibold mb-4">View Other Days</h3>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                {[
+                  { name: 'Friday', key: 'friday', date: new Date(2026, 7, 21) },
+                  { name: 'Saturday', key: 'saturday', date: new Date(2026, 7, 22) },
+                  { name: 'Sunday', key: 'sunday', date: new Date(2026, 7, 23) },
+                  { name: 'Monday', key: 'monday', date: new Date(2026, 7, 24) }
+                ].map(({ name, key }) => (
+                  <button
+                    key={key}
+                    onClick={() => setCurrentDay(key)}
+                    className={`transition-all rounded-lg py-3 px-4 font-medium ${
+                      currentDay === key
+                        ? 'bg-emerald-600'
+                        : 'bg-slate-700/50 hover:bg-emerald-600'
+                    }`}
+                  >
+                    {name}
+                  </button>
+                ))}
               </div>
             </div>
-          );
-        })}
-      </div>
-    </div>
 
-    {/* Devotional Section */}
-    <div className="bg-gradient-to-r from-purple-800/40 to-indigo-800/40 rounded-2xl p-6 border border-purple-700/30">
-      <h3 className="text-lg font-semibold mb-4">Today's Devotional</h3>
-      <div className="space-y-4">
-        <div>
-          <h4 className="text-xl font-bold mb-2">{currentSchedule.devotional.title}</h4>
-          <p className="text-sm text-purple-300">{currentSchedule.devotional.scripture}</p>
-        </div>
-        <div className="bg-white/5 p-4 rounded-lg italic">
-          "{currentSchedule.devotional.quote}"
-        </div>
-        <div className="text-slate-300">
-          <p className="mb-2">Reflection:</p>
-          <p>{currentSchedule.devotional.reflection}</p>
-        </div>
-        <button
-          onClick={() => openDevotionalDetails(currentDay)}
-          className="text-purple-400 hover:text-purple-300 text-sm font-medium flex items-center gap-1"
-        >
-          Read Full Devotional
-          <ArrowRight className="w-3 h-3" />
-        </button>
-      </div>
-    </div>
-
-    {/* ENHANCED FEATURES - REMOVED SystemStatus */}
-    <EnhancedWeather />
-    <CheckInComponent />
-    <KomootFeatures />
-    <EmergencyFeatures />
-    <ProgressTracker />
-    <QuickActions />
-  </div>
-)}
+            <div className="bg-slate-800/70 backdrop-blur rounded-xl p-6 border border-slate-700">
+              <h3 className="text-lg font-semibold mb-4">Today's Activities</h3>
+              <div className="space-y-3">
+                {currentSchedule.schedule.map((item, index) => {
+                  const itemTime = parseFloat(item.time.replace(':', '.'));
+                  const isPast = itemTime < currentHour;
+                  const isCurrent = itemTime <= currentHour && currentHour < itemTime + 0.5;
+                  
+                  return (
+                    <div 
+                      key={index}
+                      className={`p-4 rounded-lg transition-all ${
+                        isCurrent 
+                          ? 'bg-emerald-900/30 border-l-4 border-emerald-400' 
+                          : isPast 
+                            ? 'bg-slate-700/30' 
+                            : 'bg-slate-800/50'
+                      }`}
+                    >
+                      <div className="flex items-start gap-4">
+                        <div className="text-center">
+                          <div className="text-lg font-bold">{item.time}</div>
+                          <div className="text-xs text-slate-400 mt-1">{isCurrent ? 'NOW' : isPast ? 'Done' : 'Upcoming'}</div>
+                        </div>
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className="text-xl">{item.emoji}</span>
+                            <h4 className="font-semibold">{item.activity}</h4>
+                          </div>
+                          <div className="flex items-center gap-2 text-sm text-slate-400">
+                            <MapPin className="w-3 h-3" />
+                            <span>{item.location === 'base' ? 'Bury Jubilee Centre' : item.location}</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
 
             {/* Devotional Section */}
             <div className="bg-gradient-to-r from-purple-800/40 to-indigo-800/40 rounded-2xl p-6 border border-purple-700/30">
@@ -2268,39 +2180,13 @@ export default function GreenwichSDARetreatApp() {
               </div>
             </div>
 
-            {/* ENHANCED FEATURES */}
+            {/* ENHANCED FEATURES - REMOVED SystemStatus */}
             <EnhancedWeather />
             <CheckInComponent />
             <KomootFeatures />
             <EmergencyFeatures />
             <ProgressTracker />
-            <SystemStatus />
             <QuickActions />
-
-            {/* Quick Day Selector */}
-            <div className="bg-slate-800/70 backdrop-blur rounded-xl p-6 border border-slate-700">
-              <h3 className="text-lg font-semibold mb-4">View Other Days</h3>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                {[
-                  { name: 'Friday', key: 'friday', date: new Date(2026, 7, 21) },
-                  { name: 'Saturday', key: 'saturday', date: new Date(2026, 7, 22) },
-                  { name: 'Sunday', key: 'sunday', date: new Date(2026, 7, 23) },
-                  { name: 'Monday', key: 'monday', date: new Date(2026, 7, 24) }
-                ].map(({ name, key }) => (
-                  <button
-                    key={key}
-                    onClick={() => setCurrentDay(key)}
-                    className={`transition-all rounded-lg py-3 px-4 font-medium ${
-                      currentDay === key
-                        ? 'bg-emerald-600'
-                        : 'bg-slate-700/50 hover:bg-emerald-600'
-                    }`}
-                  >
-                    {name}
-                  </button>
-                ))}
-              </div>
-            </div>
           </div>
         )}
 
