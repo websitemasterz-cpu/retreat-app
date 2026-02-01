@@ -2007,7 +2007,7 @@ export default function GreenwichSDARetreatApp() {
                   <Mountain className="w-6 h-6 text-white" />
                 </div>
                 <div>
-                  <h1 className="text-xl font-bold tracking-tight">Greenwich SDA</h1>
+                  <h1 className="text-xl font-bold tracking-tight">Greenwich SDA Church</h1>
                   <p className="text-emerald-200 text-xs">Men's Retreat 2026</p>
                 </div>
               </a>
