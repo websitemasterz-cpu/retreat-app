@@ -1,10 +1,17 @@
-// src/App.jsx - CLEAN WORKING VERSION
+// src/App.jsx - COMPLETE FIXED VERSION
 import React, { useState, useEffect } from 'react';
 import { 
   Calendar, MapPin, Camera, Heart, Book, Users, Mountain, 
   Navigation, Clock, Bell, X, AlertCircle, CheckCircle, 
   RefreshCw, Zap, ArrowUp, Home, Filter, MapPin as TrailIcon,
-  Sun, Cloud, Thermometer, Droplets, Wind, Sunrise, Sunset
+  Sun, Cloud, Thermometer, Droplets, Wind, Sunrise, Sunset,
+  TrendingUp, Target, Coffee as CoffeeIcon, MessageCircle,
+  Upload, CloudRain, CloudSnow, CloudLightning, Battery, Wifi,
+  Trophy, WifiOff, Gift, Download, Compass, Activity,
+  Star, Shield, Phone, Music, Edit, ChevronUp,
+  CheckSquare, Dumbbell, CalendarDays, Users as GroupIcon,
+  ExternalLink, ArrowRight, Ruler, Clock as TimeIcon,
+  TrendingUp as TrendingUpIcon, Award, Map as MapIcon
 } from 'lucide-react';
 
 export default function GreenwichSDARetreatApp() {
@@ -176,7 +183,7 @@ export default function GreenwichSDARetreatApp() {
     setCurrentUser(prev => ({
       ...prev,
       points: prev.points + points,
-      checkIns: prev.checkIns + 1
+      checkIns: (prev.checkIns || 0) + 1
     }));
     
     addNotification(`Checked into ${attraction.name}! +${points} points 🎉`);
